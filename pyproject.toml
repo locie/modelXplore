@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "modelxplore"
+version = "0.1.0"
+description = ""
+authors = ["Nicolas CELLIER <eryole@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "*"
+SALib = "^1.1"
+sklearn = "^0.0.0"
+optunity = "^1.1"
+voluptuous = "^0.11.1"
+xarray = "^0.10.4"
+joblib = "^0.11.0"
+pendulum = "^2.0"
+sympy = "^1.1"
+fuzzywuzzy = "^0.16.0"
+python-Levenshtein = "^0.12.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^3.5"
+isort = "^4.3"
+pylama = "^7.4"
+yapf = "^0.22.0"
