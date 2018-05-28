@@ -37,9 +37,9 @@ class Explorer:
         self._df = pd.DataFrame(columns=["batch", *self._vars, "y", "time"])
 
         if isinstance(sampler, Sampler):
-            self.sample = sampler(self._problem)
+            self.sample = sampler(bounds)
         elif isinstance(sampler, str):
-            self.sample = get_sampler(sampler)(self._problem)
+            self.sample = get_sampler(sampler)(bounds)
         else:
             raise ValueError("sampler should be a Sampler instance, "
                              "or one of the following: "

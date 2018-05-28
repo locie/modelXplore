@@ -58,10 +58,13 @@ def register_sampler(UserSampler):
 
 
 class Sampler:
-    def __init__(self, problem):
-        self.ndim = problem["num_vars"]
-        self.bounds = problem["bounds"]
-        self._problem = problem
+    def __init__(self, bounds):
+        self._vars, self._bounds = zip(*bounds)
+        self.ndim = len(bounds)
+        self.bounds = bounds
+        self._problem = dict(num_vars=self.ndim,
+                             names=self._vars,
+                             bounds=self._bounds)
 
     def __call__(self, size):
         return self.rvs(size)
@@ -79,7 +82,7 @@ class IncrementalSampler(Sampler):
     """
     name = "incremental"
 
-    def __init__(self, problem, n=1000, a=.95, b=.01):
+    def __init__(self, bounds, n=1000, a=.95, b=.01):
         """[summary]
 
         Arguments:
@@ -90,10 +93,10 @@ class IncrementalSampler(Sampler):
             a {float} -- [description] (default: {.95})
             b {float} -- [description] (default: {.01})
         """
-        super().__init__(problem)
+        super().__init__(bounds)
         self._X = None
         self._generation_dist = beta(a, b)
-        self._lhs_sampler = LhsSampler(problem)
+        self._lhs_sampler = LhsSampler(bounds)
         self._x_flatten = self._lhs_sampler.rvs(n)
 
     @property
@@ -107,13 +110,12 @@ class IncrementalSampler(Sampler):
 
     def update_sampler(self, X):
 
-        self._distance = MinMaxScaler((0, 1)).fit_transform(
-            euclidean_distances(self._x_flatten,
-                                X).min(axis=1)[:, None])
+        _distance = MinMaxScaler((0, 1)).fit_transform(
+            self._distance(self._x_flatten, X)[:, None])
 
-        self._pdf = NearestNDInterpolator(self._x_flatten, self._distance)
+        self._pdf = NearestNDInterpolator(self._x_flatten, _distance)
 
-        self._reversed_funcs = [interp1d(self._distance.squeeze(),
+        self._reversed_funcs = [interp1d(_distance.squeeze(),
                                          x.squeeze(),
                                          fill_value="extrapolate")
                                 for x in self._x_flatten.T]
@@ -134,6 +136,9 @@ class IncrementalSampler(Sampler):
         else:
             self.X = self._lhs_sampler(size)
             return self.X
+
+    def _distance(self, inputs, X):
+        return euclidean_distances(inputs, X).min(axis=1)
 
     def pdf(self, coords):
         return self._pdf(coords)
