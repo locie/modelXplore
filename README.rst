@@ -73,6 +73,108 @@ In detail
 Explorer
 ********
 
+The explorer class is the main class, the one the user will
+manipulate the most.
+
+It takes at initialization the bounds of the problem
+(as a list of :code:`[(var: (down limit, up limit))]`), and can
+take a function that will have as signature :code:`(*inputs)->output`.
+
+.. code-block:: python3
+
+  # An explorer without attached model
+  explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5)])
+
+.. code-block:: python3
+
+  # An explorer with attached model
+
+  def my_model(x1, x2):
+      return np.cos(x1) * np.cos(x2)
+
+  explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5)], my_model)
+
+The explorer can generate new samples (according to the attached sampler)
+at user will, and if a function has been provided, can compute the ouput
+for these samples.
+
+.. code-block:: python3
+
+  def my_model(x1, x2):
+      return np.cos(x1) * np.cos(x2)
+
+  explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5)], my_model)
+
+  # generate samples (without running the model) according to the sampler "lhs" (default)
+  X = explorer.sample(200)
+
+  # generate samples, generate outputs, and attach them to the explorer
+  explorer.explore(200)
+  print(explorer.X)
+  print(explorer.y)
+
+  # These samples are available as a dataframe to
+  print(explorer.data)
+
+  # Use user provided samples, run the model on it, attach them
+  explorer.explore(X=X)
+
+  # Use user provided samples and output, attach them
+  # (Only way to use "explore" without providing a model)
+  explorer.explore(X=X, y=y)
+
+A sensitivity analysis is available (via the RBD-fast method), which give
+access to the first order sensitivity indices. They are used to order inputs
+according to their relative importance.
+
+.. code-block:: python
+
+  def my_model(x1, x2):
+      return np.cos(x1) * np.cos(x2)
+
+  explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5)], my_model)
+  explorer.explore(200)
+  print(explorer.sensitivity_analysis())
+
+The method :code:`explorer.select_metamodel` allow to attach a metamodel
+to the explorer. This one can be automaticaly selected (tuned)
+via the library optunity, accross some or all inputs.
+
+.. code-block:: python
+
+  def my_model(x1, x2, x3):
+      return np.cos(x1) * np.cos(x2) + 0.001 * np.sin(x3)
+
+  explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5)], my_model)
+  explorer.explore(200)
+
+  # full auto tune, let optunity chose as well metamodel and hyperparameters and
+  # use the default threshold to select the relevant features (via the sensitivity indices) :
+  # the N most relevant features will be used, in order to have 90% of the variance explained
+  # by these features
+  explorer.select_metamodel()
+
+  # We can lower the threshold
+  explorer.select_metamodel(threshold=.5)
+
+  # full auto tune, but select the N most relevant features
+  explorer.select_metamodel(features=2)
+
+  # full auto tune, but select specific features
+  explorer.select_metamodel(features=["x1", "x3"])
+
+  # auto tune on selected metamodel
+  explorer.select_metamodel(algorithm="svm")
+
+  # auto tune on list of algorithms
+  explorer.select_metamodel(algorithm=["svm", "k-nn"])
+
+  # auto tune off (you have to provide one algorithm in that case)
+  explorer.select_metamodel(algorithm="svm", hypopt=False)
+
+  # After that, we have access to that metamodel:
+  explorer.metamodel(x1=1, x2=0.5)
+
 Model
 *****
 
@@ -144,20 +246,116 @@ We can see that the incremental sampling is able to fill the void between the
 olders sample when the lhs sampling is "amnesic" : the new samples do not take
 the old ones into account.
 
-
-
-available samplers are available with
+Available samplers are listed with
 
 .. code-block:: python3
 
   from modelxplore import available_samplers
   print(available_samplers)
 
+You can register a new sampler easily, and it will be usable
+directly within an Explorer.
+
+.. code-block:: python3
+
+  from modelxplore import Sampler, register_sampler
+  from scipy.stats import uniform
+  from sklearn.preprocessing import MinMaxScaler
+
+  class MonteCarloSampler(Sampler):
+      name = "monte-carlo"
+
+      def rvs(self, size=1):
+          scalers = [MinMaxScaler(bound) for bound in self._bounds]
+          samples = uniform.rvs(size=(size, self.ndim))
+          samples = [scaler.fit_transform(sample[:, None]).T
+                     for scaler, sample
+                     in zip(scalers, samples.T)]
+          samples = np.vstack(samples).T
+
+          return samples
+
+  register_sampler(MonteCarloSampler)
+  explorer = mx.Explorer(bounds, function, sampler="monte-carlo")
+  explorer.explore(50)
 
 Tuner
 *****
 
+A tuner is a combinaison of a sklearn regressor with a
+search space that defined the bounds of the hyperparameters
+optimization.
+
+The simplest one available is the k-nn tuner
+
 .. code-block:: python3
 
-  from modelxplore import available_tuners
-  print(available_tuners)
+  class KnnTuner(Tuner):
+      name = "k-nn"
+      search = {'n_neighbors': [1, 5]}
+      Regressor = KNeighborsRegressor
+
+The only hyperparameter to optimize is the :code:`n_neighbors`,
+which can go from 1 to 5.
+
+A special tuner is the :code:`MultipleTuner` that link different
+tuners to search which one is the most efficient. This is what is
+used when a user provide a list of algorithm when he selects
+a metamodel.
+
+The hyperparameters type are detected automaticaly via the validator
+library `voluptuous <http://link>`_ and the :code:`Regressor` signature,
+but if a signature is a bit more complex, you can overide the validator
+when you create your tuner. For example, for the (more complex)
+:code:`SVMTuner`:
+
+
+.. code-block:: python3
+
+  class SVMTuner(Tuner):
+      name = "svm"
+      search = {'kernel': {'linear': {'C': [0, 2]},
+                          'rbf': {'gamma': [0, 1],
+                                  'C': [0, 10]},
+                          'poly': {'degree': [2, 5],
+                                    'C': [0, 50],
+                                    'coef0': [0, 1]}
+                          }
+                }
+      Regressor = SVR
+      override_validation = dict(degree=Coerce(float),
+                                gamma=Any('auto', Coerce(float)))
+
+In that case, *degree* is detected as an integer instead of a float,
+and *gamma* is set to **auto** by default. We had to override these
+default value in order to let the Tuner know how to do the
+optimization.
+
+you can register your own tuner the same way you
+register a Sampler:
+
+.. code-block:: python3
+
+  from sklearn.gaussian_process import GaussianProcessRegressor
+  class GaussianProcessTuner(Tuner):
+      name = "gaussian-process"
+      search = {"alpha": [1E-10, 1E-1]}
+      Regressor = GaussianProcessRegressor
+
+  register_tuner(GaussianProcessTuner)
+
+  explorer = Explorer(bounds, function)
+  explorer.explore(60)
+  metamodel = explorer.select_metamodel("gaussian-process")
+  metamodel.response(50).plot()
+
+
+TODO
+----
+
+- Internal documentation (docstrings)
+- tests
+- CI
+- Responsive sampler
+- Add tuners
+- Add test functions
