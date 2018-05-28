@@ -356,7 +356,7 @@ Ishigami
 ********
 
 left to right : reference function, gaussian-process metamodel,
-svm metamodel.
+svm metamodel. Trained with 150 samples.
 
 Mc Cormick
 **********
@@ -364,11 +364,18 @@ Mc Cormick
 .. image:: doc/mc_cormick.png
 
 left to right : reference function, gaussian-process metamodel,
-random-forest metamodel.
+random-forest metamodel. Trained with 150 samples.
 
 
 Sobol G
 *******
+
+.. image:: doc/sobol_g.png
+
+
+left to right : reference function, random-forest metamodel,
+gaussian-process metamodel. Trained with 800 samples.
+
 
 TODO
 ----
