@@ -5,7 +5,7 @@ description = ""
 authors = ["Nicolas CELLIER <eryole@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "*"
+python = "^3"
 SALib = "^1.1"
 sklearn = "^0.0.0"
 optunity = "^1.1"
@@ -13,12 +13,15 @@ voluptuous = "^0.11.1"
 xarray = "^0.10.4"
 joblib = "^0.11.0"
 pendulum = "^2.0"
-sympy = "^1.1"
 fuzzywuzzy = "^0.16.0"
 python-Levenshtein = "^0.12.0"
+matplotlib = "^2.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.5"
 isort = "^4.3"
 pylama = "^7.4"
 yapf = "^0.22.0"
+
+[tool.poetry.extras]
+interactive = ["holoviews", "jupyter"]

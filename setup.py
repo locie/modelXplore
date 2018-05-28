@@ -19,7 +19,9 @@ setup(
                       "sklearn",
                       "optunity",
                       "voluptuous",
+                      "fuzzywuzzy",
+                      "python-Levenshtein",
+                      "matplotlib",
                       "xarray",
-                      "joblib",
                       "pendulum"],
 )

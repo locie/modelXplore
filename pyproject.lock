@@ -42,12 +42,12 @@ ordereddict = "*"
 python = "<3.0"
 [[package]]
 name = "futures"
-version = "3.2.0"
-description = "Backport of the concurrent.futures package from Python 3"
+version = "3.1.1"
+description = "Backport of the concurrent.futures package from Python 3.2"
 category = "dev"
 optional = false
-python-versions = ">=2.6, <3"
-platform = "*"
+python-versions = "*"
+platform = "UNKNOWN"
 
 [package.requirements]
 python = "~2.7"
@@ -397,16 +397,19 @@ python-versions = "*"
 platform = "*"
 
 [metadata]
-python-versions = "*"
+python-versions = "^3"
 platform = "*"
-content-hash = "36340b9f8285c2dc2c6a79c5ea982bfbe334932ec59f0a306281e84cb3ef1075"
+content-hash = "563a4773799bb1270baeeb3957ae688321268502e388123b4fa52211a4fba8d9"
+
+[extras]
+interactive = [ "matplotlib",]
 
 [metadata.hashes]
 atomicwrites = [ "a24da68318b08ac9c9c45029f4a10371ab5b20e4226738e150e6e7c571630ae6", "240831ea22da9ab882b551b31d4225591e5e447a68c5e188db5b89ca1d487585",]
 attrs = [ "4b90b09eeeb9b88c35bc642cbac057e45a5fd85367b985bd2809c62b7b939265", "e0d0eb91441a3b53dab4d9b743eafc1ac44476296a2053b6ca3af0b139faf87b",]
 colorama = [ "463f8483208e921368c9f306094eb6f725c6ca42b0f97e313cb5d5512459feda", "48eb22f4f8461b1df5734a074b57042430fb06e1d61bd1e11b078c0fe6d7a1f1",]
 funcsigs = [ "330cc27ccbf7f1e992e69fef78261dc7c6569012cf397db8d3de0234e6c937ca", "a7bb0f2cf3a3fd1ab2732cb49eba4252c2af4240442415b4abce3b87022a8f50",]
-futures = [ "ec0a6cb848cc212002b9828c3e34c675e0c9ff6741dc445cab6fdd4e1085d1f1", "9ec02aa7d674acb8618afb127e27fde7fc68994c0437ad759fa094a574adb265",]
+futures = [ "c4884a65654a7c45435063e14ae85280eb1f111d94e542396717ba9828c4337f", "51ecb45f0add83c806c68e4b06106f90db260585b25ef2abfcda0bd95c0132fd",]
 fuzzywuzzy = [ "ecf490216fb4d76b558a03042ff8f45a8782f17326caca1384d834cbaa2c7e6f", "d40c22d2744dff84885b30bbfc07fab7875f641d070374331777a4d1808b8d4e",]
 isort = [ "ec9ef8f4a9bc6f71eec99e1806bfa2de401650d996c59330782b89a5555c1497", "1153601da39a25b14ddc54955dbbacbb6b2d19135386699e2ad58517953b34af", "b9c40e9750f3d77e6e4d441d8b0266cf555e7cdabdcff33c4fd06366ca761ef8",]
 joblib = [ "cf3420e27048c66916754472bc3a2d4717271103a4806f31f11707a3d82a991f", "7b8fd56df36d9731a83729395ccb85a3b401f62a96255deb1a77220c00ed4085",]
