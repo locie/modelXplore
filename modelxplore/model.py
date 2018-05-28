@@ -27,7 +27,7 @@ class Model:
         """
         self._vars, self._bounds = zip(*bounds)
         self._problem = dict(num_vars=len(self),
-                             names=self._vars,
+                             names=self.inputs,
                              bounds=self._bounds)
         self._function = np.vectorize(function)
 
@@ -48,16 +48,16 @@ class Model:
                 return self._function(*args)
 
         if kwargs != {}:
-            args = [kwargs[var] for var in self._vars]
+            args = [kwargs[var] for var in self.inputs]
             return self._function(*args)
         raise ValueError("You should either provide X as an array"
                          " (n samples x dim),"
                          " positional arguments ordonned as %s"
                          " or give them as named argument." %
-                         ", ".join(self._vars))
+                         ", ".join(self.inputs))
 
     def __len__(self):
-        return len(self._vars)
+        return len(self.inputs)
 
     def response(self, n, mode="accurate", grid="uniform"):
         """[summary]
@@ -88,14 +88,15 @@ class Model:
                 S2 = {var: sum([value
                                 for key, value in sensitivity["S2"].items()
                                 if var in key])
-                      for var in self._vars}
+                      for var in self.inputs}
                 n = n * len(self)
                 n = [n * max(S1[var] + S2[var], .05)
-                     for var in self._vars]
+                     for var in self.inputs]
         coords = [np.linspace(*dict(self.bounds)[var], n)
-                  for n, var in zip(n, self._vars)]
+                  for n, var in zip(n, self.inputs)]
         if mode == "fast":
-            lhs_sampler = LhsSampler(self._problem)
+            lhs_sampler = LhsSampler([(var, self.bounds[var])
+                                      for var in self.inputs])
             random_coords = lhs_sampler((n // 10) ** len(self))
             corners = np.array(list(it.product(*self._problem["bounds"])))
             centers = np.vstack(set([tuple(np.vstack(corner)
@@ -114,11 +115,11 @@ class Model:
         elif mode == "accurate":
             y = self(**{key: value.reshape(get_shape(i))
                         for i, (key, value)
-                        in enumerate(zip(self._vars, coords))})
+                        in enumerate(zip(self.inputs, coords))})
         else:
             raise ValueError("mode should be either 'fast' or 'accurate'")
 
-        da = xr.DataArray(y, name="y", coords=coords, dims=self._vars)
+        da = xr.DataArray(y, name="y", coords=coords, dims=self.inputs)
 
         return da
 
@@ -136,7 +137,7 @@ class Model:
         S1 = rbd_fast.analyze(self._problem, y, X)["S1"]
         return dict(sorted([(var, idx)
                             for var, idx
-                            in zip(self._vars, S1)],
+                            in zip(self.inputs, S1)],
                            key=sort_by_values, reverse=True))
 
     def full_sensitivity_analysis(self, N=1000):
@@ -151,11 +152,11 @@ class Model:
         X = saltelli.sample(self._problem, N)
         y = self(X)
         S = sobol.analyze(self._problem, y)
-        S1 = {var: s1 for var, s1 in zip(self._vars, S["S1"])}
+        S1 = {var: s1 for var, s1 in zip(self.inputs, S["S1"])}
         S2 = {}
         for j in range(len(self)):
             for k in range(j + 1, len(self)):
-                S2[(self._vars[j], self._vars[k])] = S['S2'][j, k]
+                S2[(self.inputs[j], self.inputs[k])] = S['S2'][j, k]
         return dict(S1=S1, S2=S2)
 
     @property
@@ -164,7 +165,11 @@ class Model:
 
     @property
     def bounds(self):
-        return dict(zip(self._vars, self._bounds))
+        return dict(zip(self.inputs, self._bounds))
+
+    @property
+    def inputs(self):
+        return self._vars
 
 
 def meta_factory(model, n_features, *args):
@@ -188,7 +193,7 @@ class MetaModel(Model):
         super().__init__(bounds, _metamodel_func)
 
     def fit(self, samples):
-        self._metamodel.fit(samples[list(self._vars)]
+        self._metamodel.fit(samples[list(self.inputs)]
                             .values.reshape((-1, len(self))),
                             samples["y"].values)
 
