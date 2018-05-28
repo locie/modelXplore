@@ -349,6 +349,26 @@ register a Sampler:
   metamodel = explorer.select_metamodel("gaussian-process")
   metamodel.response(50).plot()
 
+Gallery
+-------
+
+Ishigami
+********
+
+left to right : reference function, gaussian-process metamodel,
+svm metamodel.
+
+Mc Cormick
+**********
+
+.. image:: doc/mc_cormick.png
+
+left to right : reference function, gaussian-process metamodel,
+random-forest metamodel.
+
+
+Sobol G
+*******
 
 TODO
 ----
