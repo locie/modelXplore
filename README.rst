@@ -2,7 +2,7 @@ ModelXplore, a python based model exploration
 =============================================
 
 ModelXplore is an helper library that give some tool to facilitate the
-exploration of time-expensive models (or experimentation).
+exploration of time-expansive models (or experimentation).
 
 It give access to a variety of samplers, of regression function
 (called meta-model), easy access to sensitivity analysis, and make easy the
@@ -35,7 +35,7 @@ If we take the ishigami function, we know what it looks like ;
 
 .. image:: doc/reference_ishigami.png
 
-But what if we have a function that is really expensive, and you want to
+But what if we have a function that is really expansive, and you want to
 obtain that kind of surface response?
 
 .. code-block:: python3

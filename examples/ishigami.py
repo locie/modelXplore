@@ -71,7 +71,7 @@ print("First order sensitivity indices via rbd-fast (model):\n\t-",
                      in explorer.S1.items()]))
 
 # Once the explorer is fed with inputs and outputs (which should be the most
-# expensive part of the work), we can let the auto-tuner chose a metamodel.
+# expansive part of the work), we can let the auto-tuner chose a metamodel.
 # These meta-models are essentially sklearn regressor, but other can be
 # implemented. They will be trained with the current inputs and outputs,
 # and the hyperparameters of the model will be choosen in order to minimize
@@ -87,7 +87,7 @@ explorer.select_metamodel(features=["x1", "x2", "x3"])
 # Now, the meta model is attached to the explorer, and will be trained every
 # time the explorer is fed with new data.
 # Because the metamodel inherit from the Model class, it has all its features.
-# It will be way less cpu-expensive than the explored function, and the
+# It will be way less cpu-expansive than the explored function, and the
 # response surface as well as a full sensitivity analysis is easy to obtain.
 
 meta_response = explorer.metamodel.response(50)
@@ -104,7 +104,7 @@ pl.tight_layout()
 pl.savefig("doc/metamodel_ishigami.png")
 
 # The full sensitivity analysis is computed with the Sobol method. This method
-# give access to the interaction between the inputs, but is expensive to
+# give access to the interaction between the inputs, but is expansive to
 # compute : the metamodel having a neglectible cost, we can afford to run that
 # king of analysis.
 
