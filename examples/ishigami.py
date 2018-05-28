@@ -22,12 +22,13 @@ response = ishigami.response(50)
 pl.figure(figsize=(8, 3))
 
 pl.subplot(1, 2, 1)
-response.sel(x3=-np.pi, method="nearest").plot()
+response.sel(x3=-np.pi, method="nearest").plot(cmap="Spectral")
 
 pl.subplot(1, 2, 2)
-response.sel(x3=0, method="nearest").plot()
+response.sel(x3=0, method="nearest").plot(cmap="Spectral")
 
-pl.savefig("docs/reference_ishigami.png")
+pl.tight_layout()
+pl.savefig("doc/reference_ishigami.png")
 
 
 # We can now initialize the explorer with that toy model.
@@ -94,12 +95,13 @@ meta_response = explorer.metamodel.response(50)
 pl.figure(figsize=(8, 3))
 
 pl.subplot(1, 2, 1)
-meta_response.sel(x3=-np.pi, method="nearest").plot()
+meta_response.sel(x3=-np.pi, method="nearest").plot(cmap="Spectral")
 
 pl.subplot(1, 2, 2)
-meta_response.sel(x3=0, method="nearest").plot()
+meta_response.sel(x3=0, method="nearest").plot(cmap="Spectral")
 
-pl.savefig("docs/metamodel_ishigami.png")
+pl.tight_layout()
+pl.savefig("doc/metamodel_ishigami.png")
 
 # The full sensitivity analysis is computed with the Sobol method. This method
 # give access to the interaction between the inputs, but is expensive to
