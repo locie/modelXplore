@@ -235,6 +235,6 @@ class MetaModel(Model):
                 y, nprocs=nprocs)
             hyperparameters = dict(
                 **optimal_hyperparameters, **hyperparameters)
+            metamodel.r_squared = tune.r_squared
         metamodel = tune(**hyperparameters)
-        metamodel.r_squared = tune.r_squared
-        return metamodel, hyperparameters
+        return tune.name, metamodel, hyperparameters

@@ -205,14 +205,17 @@ class Explorer:
 
         X = self.data[meta_vars].values
         y = self.y
-        tuned_model, hyperparameters = MetaModel.tune_metamodel(
+        (name_metamodel,
+         tuned_metamodel,
+         hyperparameters) = MetaModel.tune_metamodel(
             X, y,
             algorithms=algorithms, hypopt=hypopt,
             num_evals=num_evals, num_folds=num_folds, nprocs=nprocs)
 
         meta_bounds = [(var, self.bounds[var])
                        for var in meta_vars]
-        metamodel = MetaModel(meta_bounds, tuned_model, hyperparameters)
+        metamodel = MetaModel(meta_bounds, tuned_metamodel, hyperparameters)
+        metamodel.name = name_metamodel
         metamodel.fit(self.data)
         self._metamodel = metamodel
         return metamodel
