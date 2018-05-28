@@ -176,17 +176,6 @@ class Explorer:
                          hypopt=True, features="auto", threshold=.9,
                          num_evals=50, num_folds=2, nprocs=1,
                          **hyperparameters):
-        """[summary]
-
-        Keyword Arguments:
-            algorithms {list} -- [description] (default: {["k-nn", "svm", "random-forest"]})
-            hypopt {bool} -- [description] (default: {True})
-            features {str} -- [description] (default: {"auto"})
-            threshold {float} -- [description] (default: {.9})
-            num_evals {int} -- [description] (default: {50})
-            num_folds {int} -- [description] (default: {2})
-            nprocs {int} -- [description] (default: {1})
-        """
         y = self.y
         if features == "auto":
             sens_sorted_vars, sens_sorted_idx = zip(

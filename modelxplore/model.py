@@ -206,25 +206,6 @@ class MetaModel(Model):
                        algorithms=["k-nn", "SVM", "random-forest"],
                        hypopt=True, num_evals=50, num_folds=2, nprocs=1,
                        **hyperparameters):
-        """[summary]
-
-        Arguments:
-            X {[type]} -- [description]
-            y {[type]} -- [description]
-
-        Keyword Arguments:
-            algorithms {list} -- [description] (default: {["k-nn", "SVM", "random-forest"]})
-            hypopt {bool} -- [description] (default: {True})
-            num_evals {int} -- [description] (default: {50})
-            num_folds {int} -- [description] (default: {2})
-            nprocs {int} -- [description] (default: {1})
-
-        Raises:
-            ValueError -- [description]
-
-        Returns:
-            [type] -- [description]
-        """
         if isinstance(algorithms, str):
             tune = get_tuner(algorithms)
         elif len(algorithms) == 1:
@@ -240,6 +221,7 @@ class MetaModel(Model):
                 y, nprocs=nprocs)
             hyperparameters = dict(
                 **optimal_hyperparameters, **hyperparameters)
-            metamodel.r_squared = tune.r_squared
         metamodel = tune(**hyperparameters)
+        if hypopt:
+            metamodel.r_squared = tune.r_squared
         return tune.name, metamodel, hyperparameters
