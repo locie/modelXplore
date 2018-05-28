@@ -355,6 +355,8 @@ Gallery
 Ishigami
 ********
 
+.. image:: doc/ishigami.png
+
 left to right : reference function, gaussian-process metamodel,
 svm metamodel. Trained with 150 samples.
 
