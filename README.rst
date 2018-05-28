@@ -70,17 +70,81 @@ metamodel.
 In detail
 ---------
 
-Model
-*****
-
-Meta Model
-**********
-
 Explorer
 ********
 
+Model
+*****
+
+A model in an object that represent your model. It contains the bounds
+of the problem, the function used to compute the output from the inputs.
+It is also a callable, so you can use:
+
+.. code-block:: python3
+
+  model = Model(bounds, function)
+  y = model(X)
+
+Main attributes and properties:
+
+- :code:`model.inputs` give you the inputs variables in the order expected
+  by the function.
+- :code:`model.bounds` give you the problem bounds as a dictionnary.
+- :code:`model.S1` give you access to the first order sensitivity index,
+  computed with the RBD-fast method.
+
+Main methods:
+
+- :code:`model.response` compute the response surface. You can use the
+  *fast* or the *accurate* method : the first evaluate the model on
+  sampled inputs, then use a Nearest Neighbour interpolation to project
+  the output to the response grid. The latter compute the response surface
+  directly on the grid. This grid can be *uniform* or use the sensitivity
+  indices to spread the number of slice between the different dimensions.
+- :code:`model.sensitivity_analysis` compute the first order sensitivity
+  analysis via the RBD-fast method.
+- :code:`model.full_sensitivity_analysis` compute the first and second
+  order sensitivity analysis via the Sobol method.
+
+Meta Model
+^^^^^^^^^^
+
+The metamodels are models built on a sklearn regressor : they are designed
+to be train on the user data (via the an explorer). It has an extra
+:code:`metamodel.fit` that is used to fit the metamodel, and a *static* method
+:code:`Metamodel.tune_metamodel` that use
+`optunity <http://optunity.readthedocs.io/en/latest/>`_ to chose an optimal
+regressor and tune its hyperparameters.
+
 Sampler
 *******
+
+The samplers are used to generate inputs in an optimal way. Two samplers
+are available for now:
+
+- *Latin hypercube Sampler*: designed to maximized the information with
+  as few sample as possible, without being deterministic. This is often
+  an optimal choice if you know how much run you will need, but not well
+  suited for incremental exploration (run some samples, explore the results,
+  run other sampled...).
+- *Incremental Sampler*: the first sampling use the LHS sampler, then every
+  extra samples is chosen in order to fill the void.
+- *Responsive Sampler* (under consruction): a sampler that take into account
+  the distance between older samples and the output gradient to favorize the
+  exploration in interesting area (Comming soon).
+
+The following figure illustrate the difference, with the *incremental sampler*
+at the left, and the *lhs sampler* at the right. The first line is the initial
+LHS sampling (50 samples) as black dots, and additionnal sampling (50 samples)
+as red dot. The colormap represent the euclidian distance between the point.
+
+.. image:: doc/incremental.png
+
+We can see that the incremental sampling is able to fill the void between the
+olders sample when the lhs sampling is "amnesic" : the new samples do not take
+the old ones into account.
+
+
 
 available samplers are available with
 
