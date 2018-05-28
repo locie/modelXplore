@@ -50,11 +50,11 @@ def register_sampler(UserSampler):
     Raises:
         AttributeError -- [description]
     """
-    global available_sampler
+    global available_samplers
     if Sampler not in UserSampler.__bases__:
         raise AttributeError("The provider sampler should inherit from the "
                              "Sampler base class.")
-    available_sampler[UserSampler.name] = UserSampler
+    available_samplers[UserSampler.name] = UserSampler
 
 
 class Sampler:
