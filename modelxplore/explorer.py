@@ -102,7 +102,7 @@ class Explorer:
         self.data = self.data.append(new_df, sort=True)
         return new_df
 
-    def _sensitivity_analysis(self, inputs, output):
+    def sensitivity_analysis(self, inputs, output):
         """[summary]
 
         Arguments:
@@ -118,7 +118,7 @@ class Explorer:
 
     @property
     def S1(self):
-        return self._sensitivity_analysis(self.X, self.y)
+        return self.sensitivity_analysis(self.X, self.y)
 
     @property
     def X(self):
