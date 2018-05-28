@@ -31,6 +31,13 @@ In order to reproduce the notebook examples, you will need holoviews as well:
 Overview
 --------
 
+If we take the ishigami function, we know what it looks like ;
+
+.. image:: doc/reference_ishigami.png
+
+But what if we have a function that is really expensive, and you want to
+obtain that kind of surface response?
+
 .. code-block:: python3
 
   from modelxplore import Explorer, get_test_function
@@ -53,6 +60,12 @@ Overview
 
   # We run a sobol sensitivity analysis on the metamodel (first and second order)
   print(expl.metamodel.full_sensitivity_analysis())
+
+You will then obtain an overview of your model with only 150 run, through a
+metamodel.
+
+.. image:: doc/metamodel_ishigami.png
+
 
 In detail
 ---------
