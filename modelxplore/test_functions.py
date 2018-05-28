@@ -58,7 +58,7 @@ class McCormick(TestFunction):
 
 class SobolG(TestFunction):
     name = "sobol_g"
-    bounds = [("x%i" % i, (-5, 5))
+    bounds = [("x%i" % i, (0, 1))
               for i in range(1, 9)]
 
     def model(self, *x):

@@ -95,9 +95,8 @@ class Model:
         coords = [np.linspace(*dict(self.bounds)[var], n)
                   for n, var in zip(n, self.inputs)]
         if mode == "fast":
-            lhs_sampler = LhsSampler([(var, self.bounds[var])
-                                      for var in self.inputs])
-            random_coords = lhs_sampler((n // 10) ** len(self))
+            lhs_sampler = LhsSampler(self.bounds)
+            random_coords = lhs_sampler(int(np.mean(n) / 10) ** len(self))
             corners = np.array(list(it.product(*self._problem["bounds"])))
             centers = np.vstack(set([tuple(np.vstack(corner)
                                            .mean(axis=0)
