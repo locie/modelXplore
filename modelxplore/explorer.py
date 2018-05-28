@@ -6,11 +6,10 @@ import uuid
 import numpy as np
 import pandas as pd
 import pendulum
-
 from SALib.analyze import rbd_fast
 
 from .model import MetaModel, Model
-from .sampler import get_sampler, available_samplers, Sampler
+from .sampler import Sampler, available_samplers, get_sampler
 from .utils import sort_by_values
 
 
@@ -55,7 +54,11 @@ class Explorer:
     def __len__(self):
         return len(self._vars)
 
-    def explore(self, n_samples=None, *, X=None, y=None, batch_name=None):
+    def clean(self):
+        self._df = pd.DataFrame(columns=["batch", *self._vars, "y", "time"])
+
+    def explore(self, n_samples=None, *, X=None, y=None,
+                batch_name=None, nprocs=1):
         """[summary]
 
         Keyword Arguments:
@@ -205,13 +208,14 @@ class Explorer:
         tuned_model, hyperparameters = MetaModel.tune_metamodel(
             X, y,
             algorithms=algorithms, hypopt=hypopt,
-            num_evals=num_evals, num_folds=num_folds)
+            num_evals=num_evals, num_folds=num_folds, nprocs=nprocs)
 
         meta_bounds = [(var, self.bounds[var])
                        for var in meta_vars]
         metamodel = MetaModel(meta_bounds, tuned_model, hyperparameters)
         metamodel.fit(self.data)
         self._metamodel = metamodel
+        return metamodel
 
     @property
     def metamodel(self):
