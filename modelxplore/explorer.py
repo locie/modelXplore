@@ -11,6 +11,7 @@ from SALib.analyze import rbd_fast
 
 from .model import MetaModel, Model
 from .sampler import Sampler, available_samplers, get_sampler
+from .tuner import available_tuners
 from .utils import sort_by_values
 
 
@@ -27,11 +28,25 @@ class Explorer:
             sampler {str or Sampler} -- sampler used to generate inputs (default: {"lhs"})
 
         Examples:
+            Use the explorer without function
+
             >>> explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))])
+
+            Use the explorer with function
 
             >>> def my_model(x1, x2):
             ...    return np.cos(x1) * np.cos(x2)
-            ... explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))], my_model)
+            >>> explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))], my_model)
+
+            Use the incremental sampler
+
+            >>> explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))],
+            ...                     my_model, sampler="incremental")
+
+            Do some exploration of the model
+
+            >>> new_data = explorer.explore(150)
+
 
         """  # noqa
         self._vars, self._bounds = zip(*bounds)
@@ -79,7 +94,7 @@ class Explorer:
             batch_name {str} -- name of the batch. Use uuid if not provided by the user (default: {None})
 
         Returns:
-            [DataFrame] -- the new data generated
+            DataFrame -- the new data generated
         """  # noqa
         if not batch_name:
             batch_name = str(uuid.uuid1())[:8]
@@ -150,7 +165,7 @@ class Explorer:
             n {int} -- number of vars needed
 
         Returns:
-            [list(str)] -- sorted list of n most relevant variable names.
+            list(str) -- sorted list of n most relevant variable names.
         """
         relevant_vars, _ = zip(*sorted([(var, idx)
                                         for var, idx
@@ -166,7 +181,7 @@ class Explorer:
             n {[type]} -- [description]
 
         Returns:
-            [np.array(size, n)] -- array with the n most revelant variables.
+            np.array(size, n) -- array with the n most revelant variables.
         """
         return self._df[list(self.relevant_vars(n))].values
 
@@ -192,14 +207,14 @@ class Explorer:
             return self._model
         raise NotImplementedError("Model hasn't been given by the user.")
 
-    def select_metamodel(self, algorithms=["k-nn", "svm", "random-forest"],
+    def select_metamodel(self, algorithms=available_tuners.keys(),
                          hypopt=True, features="auto", threshold=.9,
                          num_evals=50, num_folds=2, opt_metric="r_squared",
                          nprocs=1, **hyperparameters):
         """
 
         Keyword Arguments:
-            algorithms {list or str} -- [description] (default: {["k-nn", "svm", "random-forest"]})
+            algorithms {list or str} -- [description] (default: all available tuners)
             hypopt {bool} -- [description] (default: {True})
             features {"auto", int or list(str)} -- choice of the feature. Can be auto, an integer of a list of variables (default: {"auto"})
             threshold {float} -- fraction of the variable explained by the selected variables (default: {.9})
@@ -210,6 +225,12 @@ class Explorer:
 
         Returns:
             MetaModel -- the chosen and trained metamodel.
+
+        Examples:
+            Let optunity chose between the all the available tuners
+
+            >>> metamodel = explorer.select_metamodel()
+
         """  # noqa
         y = self.y
         if features == "auto":
