@@ -142,6 +142,7 @@ class MultipleTuner(Tuner):
         return kwargs
 
     def Model(self, **hyperparameters):
+        self.name = algorithm
         algorithm = hyperparameters["algorithm"]
         tune = self._tunes[algorithm]
 
