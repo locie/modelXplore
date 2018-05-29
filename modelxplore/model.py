@@ -214,7 +214,7 @@ class MetaModel(Model):
             raise AttributeError("metrics unavailable on untrained metamodel")
 
     @staticmethod
-    def tune_metamodel(X, y,
+    def tune_metamodel(X, y, meta_bounds,
                        algorithms=["k-nn", "SVM", "random-forest"],
                        hypopt=True, num_evals=50, num_folds=2,
                        opt_metric="r_squared", nprocs=1, **hyperparameters):
@@ -233,5 +233,8 @@ class MetaModel(Model):
                 opt_metric=opt_metric, nprocs=nprocs)
             hyperparameters = dict(
                 **optimal_hyperparameters, **hyperparameters)
-        metamodel = tune(**hyperparameters)
-        return tune.name, metamodel, hyperparameters, tune.metrics
+        tuned_metamodel = tune(**hyperparameters)
+        metamodel = MetaModel(meta_bounds, tuned_metamodel,
+                              hyperparameters, tune.metrics)
+        metamodel.name = tune.name
+        return metamodel
