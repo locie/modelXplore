@@ -2,6 +2,7 @@
 # coding=utf8
 
 import uuid
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -15,18 +16,24 @@ from .utils import sort_by_values
 
 class Explorer:
     def __init__(self, bounds, model=None, sampler="lhs"):
-        """[summary]
+        """Object used to help the user to explore a numerical or experimental
+        phenomena.
 
         Arguments:
-            bounds {[type]} -- [description]
+            bounds {list} -- list of variable name - bound, like ("x1", (0, 1))
 
         Keyword Arguments:
-            model {[type]} -- [description] (default: {None})
-            sampler {str} -- [description] (default: {"lhs"})
+            model {callable} -- function with signature (var1, var2...) -> y
+            sampler {str or Sampler} -- sampler used to generate inputs (default: {"lhs"})
 
-        Raises:
-            ValueError -- [description]
-        """
+        Examples:
+            >>> explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))])
+
+            >>> def my_model(x1, x2):
+            ...    return np.cos(x1) * np.cos(x2)
+            ... explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))], my_model)
+
+        """  # noqa
         self._vars, self._bounds = zip(*bounds)
         self._problem = dict(num_vars=len(self._vars),
                              names=self._vars,
@@ -59,21 +66,21 @@ class Explorer:
 
     def explore(self, n_samples=None, *, X=None, y=None,
                 batch_name=None, nprocs=1):
-        """[summary]
+        """Is a number of samples is provided, generate inputs via the explorer
+        sampler. If X is provided, compute y via the attached model. If both
+        X and y are provided, attached them to the explorer (this is the only
+        option if the user didn't provide a function at the explorer
+        initialization.
 
         Keyword Arguments:
-            n_samples {[type]} -- [description] (default: {None})
-            X {[type]} -- [description] (default: {None})
-            y {[type]} -- [description] (default: {None})
-            batch_name {[type]} -- [description] (default: {None})
-
-        Raises:
-            ValueError -- [description]
-            NotImplementedError -- [description]
+            n_samples {int} -- number of samples to generate (default: {None})
+            X {np.array (size, nvar)} -- input samples (default: {None})
+            y {np.array or list, (size,)} -- output of the model (default: {None})
+            batch_name {str} -- name of the batch. Use uuid if not provided by the user (default: {None})
 
         Returns:
-            [type] -- [description]
-        """
+            [DataFrame] -- the new data generated
+        """  # noqa
         if not batch_name:
             batch_name = str(uuid.uuid1())[:8]
         time = pendulum.now().to_cookie_string()
@@ -99,20 +106,31 @@ class Explorer:
                                    y=new_outputs,
                                    batch=batch_name,
                                    time=time))
-        self.data = self.data.append(new_df, sort=True)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.data = self.data.append(new_df)
         return new_df
 
     def sensitivity_analysis(self, inputs, output):
-        """[summary]
+        """Run a RBD-fast sensitivity analysis and return the first order
+        indices. Theses indices are not trustworthy if the number of samples
+        are not large enough (which depend of the number of dimension and
+        the non-linearity of the model), but can be used for parameters
+        sorting.
 
         Arguments:
-            inputs {[type]} -- [description]
-            output {[type]} -- [description]
+            inputs {np.array, (size, nvar)}
+            output {np.array or list, (size,)}
 
         Returns:
-            [type] -- [description]
+            dict -- first order sensitivity indices
         """
         S1 = rbd_fast.analyze(self._problem, output, inputs)["S1"]
+        if self.y.size < 60:
+            raise ValueError("Too few samples for sensitivity analysis."
+                             " You will need extra samples for proper"
+                             " sensitivity analysis")
         return dict(sorted([(var, idx) for var, idx in zip(self._vars, S1)],
                            key=sort_by_values, reverse=True))
 
@@ -125,13 +143,14 @@ class Explorer:
         return self.data[list(self._vars)].values
 
     def relevant_vars(self, n):
-        """[summary]
+        """return the sorted n most relevant variable names according to the
+        sensitivity analysis
 
         Arguments:
-            n {[type]} -- [description]
+            n {int} -- number of vars needed
 
         Returns:
-            [type] -- [description]
+            [list(str)] -- sorted list of n most relevant variable names.
         """
         relevant_vars, _ = zip(*sorted([(var, idx)
                                         for var, idx
@@ -140,13 +159,14 @@ class Explorer:
         return relevant_vars
 
     def relevant_X(self, n):
-        """[summary]
+        """return the sorted n most relevant variables inputs according to the
+        sensitivity analysis
 
         Arguments:
             n {[type]} -- [description]
 
         Returns:
-            [type] -- [description]
+            [np.array(size, n)] -- array with the n most revelant variables.
         """
         return self._df[list(self.relevant_vars(n))].values
 
@@ -176,19 +196,44 @@ class Explorer:
                          hypopt=True, features="auto", threshold=.9,
                          num_evals=50, num_folds=2, opt_metric="r_squared",
                          nprocs=1, **hyperparameters):
+        """
+
+        Keyword Arguments:
+            algorithms {list or str} -- [description] (default: {["k-nn", "svm", "random-forest"]})
+            hypopt {bool} -- [description] (default: {True})
+            features {"auto", int or list(str)} -- choice of the feature. Can be auto, an integer of a list of variables (default: {"auto"})
+            threshold {float} -- fraction of the variable explained by the selected variables (default: {.9})
+            num_evals {int} -- number of tuner optimization evaluations (default: {50})
+            num_folds {int} -- number of tuner folds (default: {2})
+            opt_metric {str} -- metric used to choose the metamodel ("r_squared" or "me") (default: {"r_squared"})
+            nprocs {int} -- number of processes used by the optimization (-1 for all available cpu) (default: {1})
+
+        Returns:
+            MetaModel -- the chosen and trained metamodel.
+        """  # noqa
         y = self.y
         if features == "auto":
-            sens_sorted_vars, sens_sorted_idx = zip(
-                *sorted(self.S1.items(), key=sort_by_values, reverse=True))
-            cum_idx = np.cumsum(sens_sorted_idx)
-            i = np.where(cum_idx > threshold)
+            try:
+                sens_sorted_vars, sens_sorted_idx = zip(
+                    *sorted(self.S1.items(), key=sort_by_values, reverse=True))
+                cum_idx = np.cumsum(sens_sorted_idx)
+                i = np.where(cum_idx > threshold)
+            except ValueError:
+                raise ValueError("Not enough sample to automatic feature "
+                                 "selection. Please specify features as "
+                                 "list of variables")
 
             if len(i[0]) == 0:
                 meta_vars = list(sens_sorted_vars)
             else:
                 meta_vars = np.array(sens_sorted_vars)[:i[0][0]].tolist()
         elif isinstance(features, int):
-            meta_vars = list(self.relevant_vars(features))
+            try:
+                meta_vars = list(self.relevant_vars(features))
+            except ValueError:
+                raise ValueError("Not enough sample to automatic feature "
+                                 "selection. Please specify features as "
+                                 "list of variables")
         else:
             meta_vars = features
 
