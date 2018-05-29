@@ -3,6 +3,7 @@
 
 import inspect
 import multiprocessing as mp
+from functools import partial
 import sys
 
 from fuzzywuzzy import process
@@ -11,7 +12,7 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
 
 import optunity
-import optunity.metrics
+from optunity.metrics import r_squared, mse
 from voluptuous import ALLOW_EXTRA, Any, Coerce, Schema
 
 
@@ -46,13 +47,6 @@ class Tuner:
         self._validator = self._build_validator()
         self._r_squared = None
 
-    @property
-    def r_squared(self):
-        if self._r_squared:
-            return self._r_squared
-        else:
-            raise AttributeError("Tuner hasn't ran yet, metric unavailable.")
-
     def __call__(self, **hyperparameters):
         return self.Model(**hyperparameters)
 
@@ -68,14 +62,35 @@ class Tuner:
         model.fit(X, y)
         return model
 
-    def auto_tune(self, X, y, num_evals=50, num_folds=2, nprocs=1):
-        @optunity.cross_validated(x=X, y=y, num_folds=num_folds)
-        def performance(x_train, y_train, x_test, y_test, **hyperparameters):
-            # fit the model
-            model = self.fit(x_train, y_train, **hyperparameters)
-            # predict the test set
-            predictions = model.predict(x_test)
-            return optunity.metrics.r_squared(y_test, predictions)
+    def _eval_factory(self, num_folds=2, metric=r_squared):
+        def eval_performance(X, y, **hyperparameters):
+            @optunity.cross_validated(x=X, y=y, num_folds=num_folds)
+            def performance(x_train, y_train, x_test, y_test,
+                            **hyperparameters):
+                # fit the model
+                model = self.fit(x_train, y_train, **hyperparameters)
+                # predict the test set
+                predictions = model.predict(x_test)
+                return optunity.metrics.r_squared(y_test, predictions)
+            return performance(**hyperparameters)
+        return eval_performance
+
+    def r_squared(self, X, y, hyperparameters, num_folds=2):
+        return self._eval_factory(num_folds, r_squared)(
+            X, y, **hyperparameters
+            )
+
+    def mse(self, X, y, hyperparameters, num_folds=2):
+        return self._eval_factory(num_folds, mse)(
+            X, y, **hyperparameters
+            )
+
+    @property
+    def metrics(self):
+        return dict(r_squared=self.r_squared, mse=self.mse)
+
+    def auto_tune(self, X, y, num_evals=50,
+                  num_folds=2, opt_metric="r_squared", nprocs=1,):
 
         if nprocs == -1:
             nprocs = mp.cpu_count()
@@ -84,13 +99,15 @@ class Tuner:
         else:
             pmap = inspect.signature(
                 optunity.minimize_structured).parameters["pmap"].default
-        optimal_configuration, info, _ = optunity.maximize_structured(
-            performance,
-            search_space=self.search,
-            num_evals=num_evals,
-            pmap=pmap)
 
-        self._r_squared = performance(**optimal_configuration)
+        if opt_metric == "r_squared":
+            optimal_configuration, info, _ = optunity.maximize_structured(
+                partial(self._eval_factory(num_folds, r_squared), X, y),
+                search_space=self.search, num_evals=num_evals, pmap=pmap)
+        if opt_metric == "mse":
+            optimal_configuration, info, _ = optunity.minimize_structured(
+                partial(self._eval_factory(num_folds, mse), X, y),
+                search_space=self.search, num_evals=num_evals, pmap=pmap)
 
         return optimal_configuration
 

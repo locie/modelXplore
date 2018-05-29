@@ -174,8 +174,8 @@ class Explorer:
 
     def select_metamodel(self, algorithms=["k-nn", "svm", "random-forest"],
                          hypopt=True, features="auto", threshold=.9,
-                         num_evals=50, num_folds=2, nprocs=1,
-                         **hyperparameters):
+                         num_evals=50, num_folds=2, opt_metric="r_squared",
+                         nprocs=1, **hyperparameters):
         y = self.y
         if features == "auto":
             sens_sorted_vars, sens_sorted_idx = zip(
@@ -196,14 +196,17 @@ class Explorer:
         y = self.y
         (name_metamodel,
          tuned_metamodel,
-         hyperparameters) = MetaModel.tune_metamodel(
+         hyperparameters,
+         metrics) = MetaModel.tune_metamodel(
             X, y,
             algorithms=algorithms, hypopt=hypopt,
-            num_evals=num_evals, num_folds=num_folds, nprocs=nprocs)
+            num_evals=num_evals, num_folds=num_folds,
+            opt_metric=opt_metric, nprocs=nprocs)
 
         meta_bounds = [(var, self.bounds[var])
                        for var in meta_vars]
-        metamodel = MetaModel(meta_bounds, tuned_metamodel, hyperparameters)
+        metamodel = MetaModel(meta_bounds, tuned_metamodel,
+                              hyperparameters, metrics)
         metamodel.name = name_metamodel
         metamodel.fit(self.data)
         self._metamodel = metamodel

@@ -2,9 +2,10 @@
 # coding=utf8
 
 
-import functools as ft
+from functools import partial
 import itertools as it
 
+import pandas as pd
 import numpy as np
 import xarray as xr
 from scipy.interpolate import griddata
@@ -178,7 +179,7 @@ def meta_factory(model, n_features, *args):
 
 class MetaModel(Model):
 
-    def __init__(self, bounds, model, hyperparameters):
+    def __init__(self, bounds, model, hyperparameters, metrics=None):
         """[summary]
 
         Arguments:
@@ -187,24 +188,36 @@ class MetaModel(Model):
             hyperparameters {[type]} -- [description]
         """
         self._metamodel = model
-        _metamodel_func = ft.partial(meta_factory, model, len(bounds))
+        self._samples = pd.DataFrame()
+        _metamodel_func = partial(meta_factory, model, len(bounds))
         self._hyperparameters = hyperparameters
+        if metrics:
+            self._metrics = metrics
         super().__init__(bounds, _metamodel_func)
 
     def fit(self, samples):
+        self._samples = self._samples.append(samples)
         self._metamodel.fit(samples[list(self.inputs)]
                             .values.reshape((-1, len(self))),
                             samples["y"].values)
 
     @property
-    def r_squared(self):
-        return self._metamodel.r_squared
+    def metrics(self):
+        try:
+            X = self._samples[list(self.inputs)].values.reshape((-1,
+                                                                 len(self)))
+            y = self._samples["y"].values
+            return {key: metric(X, y, self._hyperparameters)
+                    for key, metric
+                    in self._metrics.items()}
+        except AttributeError:
+            raise AttributeError("metrics unavailable on untrained metamodel")
 
     @staticmethod
     def tune_metamodel(X, y,
                        algorithms=["k-nn", "SVM", "random-forest"],
-                       hypopt=True, num_evals=50, num_folds=2, nprocs=1,
-                       **hyperparameters):
+                       hypopt=True, num_evals=50, num_folds=2,
+                       opt_metric="r_squared", nprocs=1, **hyperparameters):
         if isinstance(algorithms, str):
             tune = get_tuner(algorithms)
         elif len(algorithms) == 1:
@@ -216,11 +229,9 @@ class MetaModel(Model):
             tune = MultipleTuner([get_tuner(algo) for algo in algorithms])
         if hypopt:
             optimal_hyperparameters = tune.auto_tune(
-                X,
-                y, nprocs=nprocs)
+                X, y, num_evals=num_evals, num_folds=num_folds,
+                opt_metric=opt_metric, nprocs=nprocs)
             hyperparameters = dict(
                 **optimal_hyperparameters, **hyperparameters)
         metamodel = tune(**hyperparameters)
-        if hypopt:
-            metamodel.r_squared = tune.r_squared
-        return tune.name, metamodel, hyperparameters
+        return tune.name, metamodel, hyperparameters, tune.metrics
