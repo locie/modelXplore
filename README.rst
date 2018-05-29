@@ -92,7 +92,7 @@ take a function that will have as signature :code:`(*inputs)->output`.
   def my_model(x1, x2):
       return np.cos(x1) * np.cos(x2)
 
-  explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5)], my_model)
+  explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))], my_model)
 
 The explorer can generate new samples (according to the attached sampler)
 at user will, and if a function has been provided, can compute the ouput
