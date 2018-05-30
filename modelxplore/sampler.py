@@ -15,17 +15,6 @@ from SALib.sample import latin
 
 
 def get_sampler(algorithm):
-    """[summary]
-
-    Arguments:
-        algorithm {[type]} -- [description]
-
-    Raises:
-        NotImplementedError -- [description]
-
-    Returns:
-        [type] -- [description]
-    """
     try:
         return available_samplers[algorithm]
     except KeyError:
@@ -42,14 +31,6 @@ def get_sampler(algorithm):
 
 
 def register_sampler(UserSampler):
-    """[summary]
-
-    Arguments:
-        UserSampler {[type]} -- [description]
-
-    Raises:
-        AttributeError -- [description]
-    """
     global available_samplers
     if Sampler not in UserSampler.__bases__:
         raise AttributeError("The provider sampler should inherit from the "
@@ -82,7 +63,7 @@ class IncrementalSampler(Sampler):
     """
     name = "incremental"
 
-    def __init__(self, bounds, n=1000, a=.95, b=.01):
+    def __init__(self, bounds, n=1000, a=20, b=.1):
         """[summary]
 
         Arguments:
@@ -142,6 +123,12 @@ class IncrementalSampler(Sampler):
 
     def pdf(self, coords):
         return self._pdf(coords)
+
+    @property
+    def distance_dist(self):
+        x = np.linspace(0, 1, 500)
+        y = self._generation_dist.pdf(x)
+        return x, y
 
 
 available_samplers = {
