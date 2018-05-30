@@ -6,12 +6,12 @@ import sys
 
 import numpy as np
 from fuzzywuzzy import process
-from scipy.interpolate import NearestNDInterpolator, interp1d, griddata
-from scipy.stats import beta
+from SALib.sample import latin
+from scipy.interpolate import NearestNDInterpolator, interp1d
+from scipy.stats import beta, norm
 from sklearn.metrics import euclidean_distances
 from sklearn.preprocessing import MinMaxScaler
-
-from SALib.sample import latin
+from sklearn.svm import SVR
 
 
 def get_sampler(name):
@@ -112,8 +112,6 @@ class IncrementalSampler(Sampler):
         _distance = MinMaxScaler((0, 1)).fit_transform(
             self._distance(self._x_flatten, X)[:, None])
 
-        self._pdf = NearestNDInterpolator(self._x_flatten, _distance)
-
         self._reversed_funcs = [interp1d(_distance.squeeze(),
                                          x.squeeze(),
                                          fill_value="extrapolate")
@@ -139,9 +137,6 @@ class IncrementalSampler(Sampler):
     def _distance(self, inputs, X):
         return euclidean_distances(inputs, X).min(axis=1)
 
-    def pdf(self, coords):
-        return self._pdf(coords)
-
     @property
     def distance_dist(self):
         x = np.linspace(0, 1, 500)
@@ -155,29 +150,6 @@ class ResponsiveSampler(Sampler):
     def __init__(self, bounds, n=20,
                  a_dist=20, b_dist=.1,
                  a_magn=5, b_magn=1,):
-        """A responsive sampler designed to samples according to the distance
-        between the previous samples and the output gradient.
-
-        Be careful! That sampler can be slow, it needs to map the input space
-        to compute the gradient every time the output is updated. This make
-        that sampler not suited for high dimension problem (more than 3) :
-        you may want to reduce your in
-
-        How the samples are distributed on the distance map is tuned by the
-        a_dist and b_dist arguments.
-        How the samples are distributed on the magnitude map is tuned by the
-        a_magn and b_magn arguments.
-
-        Arguments:
-            bounds -- a bounds as [(varname, (low, high)), ...]
-
-        Keyword Arguments:
-            n {int} -- number of point that will map the euclidian distance (more: slower but more accurate) (default: {20})
-            a_dist {float} -- first beta dist shape arg for distance map (default: {20})
-            b_dist {float} -- second beta dist shape arg for distance map (default: {.1})
-            a_magn {float} -- first beta dist shape arg for magnitude map (default: {20})
-            b_magn {float} -- second beta dist shape arg for magnitude map (default: {.1})
-        """  # noqa
         super().__init__(bounds)
         self._X = None
         self._y = None
@@ -186,9 +158,11 @@ class ResponsiveSampler(Sampler):
         self._distance_dist = beta(a_dist, b_dist)
         self._magn_dist = beta(a_magn, b_magn)
         self._lhs_sampler = LhsSampler(bounds)
-        xs = [np.linspace(*bound, n) for var, bound in bounds]
+        xs, dxs = zip(*[np.linspace(*bound, n, retstep=True)
+                        for var, bound in bounds])
         xxs = np.meshgrid(*xs, indexing="ij")
         self._xs = xs
+        self._dxs = dxs
         self._xxs = xxs
         self._x_flatten = np.vstack([xx.flatten() for xx in xxs]).T
         self._shape = [n] * self.ndim
@@ -216,8 +190,8 @@ class ResponsiveSampler(Sampler):
         self._distance = distance.flatten()
 
     def update_y(self):
-        gridded = griddata(self.X, self.y, self._x_flatten,
-                           "nearest").reshape(self._shape)
+        gridded = SVR().fit(
+            self.X, self.y).predict(self._x_flatten).reshape(self._shape)
         grads = np.gradient(gridded, *self._xs)
         magn = np.sqrt(sum([grad**2 for grad in grads]))
         self._magn = magn.flatten()
@@ -236,10 +210,12 @@ class ResponsiveSampler(Sampler):
 
         if magn is None:
             magn = np.linspace(0, 1, distance.size)
-        metric = np.vstack([distance, magn]).T
+        self._metric = metric = np.vstack([distance, magn]).T
 
-        reversed_funcs = [NearestNDInterpolator(metric, x.squeeze())
-                          for x in self._x_flatten.T]
+        reversed_funcs = [NearestNDInterpolator(metric, x.squeeze() +
+                                                norm.rvs(size=x.size,
+                                                         scale=dx / 2))
+                          for x, dx in zip(self._x_flatten.T, self._dxs)]
         return reversed_funcs
 
     def rvs(self, size=1):
