@@ -17,7 +17,7 @@ def add_base_modelxplore(doctest_namespace):
     doctest_namespace['func'] = mc
     doctest_namespace['bounds'] = mc.bounds
     explorer = mx.Explorer(mc.bounds, mc)
-    explorer.explore(150)
+    explorer.explore(60)
     doctest_namespace['explorer'] = explorer
     doctest_namespace['X'] = explorer.X
     doctest_namespace['y'] = explorer.y
