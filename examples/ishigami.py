@@ -28,7 +28,6 @@ pl.subplot(1, 2, 2)
 response.sel(x3=0, method="nearest").plot(cmap="Spectral")
 
 pl.tight_layout()
-pl.savefig("doc/reference_ishigami.png")
 
 
 # We can now initialize the explorer with that toy model.
@@ -101,7 +100,6 @@ pl.subplot(1, 2, 2)
 meta_response.sel(x3=0, method="nearest").plot(cmap="Spectral")
 
 pl.tight_layout()
-pl.savefig("doc/metamodel_ishigami.png")
 
 # The full sensitivity analysis is computed with the Sobol method. This method
 # give access to the interaction between the inputs, but is expansive to
