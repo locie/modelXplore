@@ -220,16 +220,36 @@ class Explorer:
             threshold {float} -- fraction of the variable explained by the selected variables (default: {.9})
             num_evals {int} -- number of tuner optimization evaluations (default: {50})
             num_folds {int} -- number of tuner folds (default: {2})
-            opt_metric {str} -- metric used to choose the metamodel ("r_squared" or "me") (default: {"r_squared"})
+            opt_metric {str} -- metric used to choose the metamodel ("r_squared" or "mse") (default: {"r_squared"})
             nprocs {int} -- number of processes used by the optimization (-1 for all available cpu) (default: {1})
 
         Returns:
             MetaModel -- the chosen and trained metamodel.
 
         Examples:
-            Let optunity chose between the all the available tuners
-
+            Let optunity choose between the all the available tuners (can be very long)
             >>> metamodel = explorer.select_metamodel()
+
+            Let optunity choose between a list of available tuners
+            >>> metamodel = explorer.select_metamodel(["k-nn", "random-forest"])
+
+            Use mean-squared error to choose the metamodel
+            >>> metamodel = explorer.select_metamodel(opt_metric="mse")
+
+            Fix the tuner, let optunity choose the optimal hyperparameters
+            >>> metamodel = explorer.select_metamodel("random-forest")
+
+            Fix the tuner, disable hyperparameter optimization
+            >>> metamodel = explorer.select_metamodel("svm", kernel="rbf", hypopt=False)
+
+            Run the tuners with specified features
+            >>> metamodel = explorer.select_metamodel("svm", features=["x1"])
+
+            Run the tuners with the 2 more sensitive features
+            >>> metamodel = explorer.select_metamodel("svm", features=2)
+
+            Run the tuners with the enough features to have 50% of the variance explain
+            >>> metamodel = explorer.select_metamodel("svm", features="auto", threshold=.5)
 
         """  # noqa
         y = self.y
