@@ -253,6 +253,8 @@ Thank to that magnitude map and the distance map already used into the increment
 
 ![image](doc/responsive.png)
 
+We can see that the samples are nicely distributed near the high gradient.
+
 Available samplers are listed with
 
 ```python
