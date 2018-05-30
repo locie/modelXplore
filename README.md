@@ -56,6 +56,7 @@ response.plot()
 
 # We run a sobol sensitivity analysis on the metamodel (first and second order)
 print(expl.metamodel.full_sensitivity_analysis())
+
 ```
 
 You will then obtain an overview of your model with only 150 run,
@@ -77,6 +78,7 @@ that will have as signature `(*inputs)->output`.
 ```python
 # An explorer without attached model
 >>> explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))])
+
 ```
 
 ```python
@@ -86,6 +88,7 @@ that will have as signature `(*inputs)->output`.
 ...     return np.cos(x1) * np.cos(x2)
 
 >>> explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))], my_model)
+
 ```
 
 The explorer can generate new samples (according to the attached
@@ -99,22 +102,21 @@ the ouput for these samples.
 >>> explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))], my_model)
 
 # generate samples (without running the model) according to the sampler "lhs" (default)
->>> X = explorer.sample(200)
+>>> new_samples = explorer.sample(200)
 
 # generate samples, generate outputs, and attach them to the explorer
->>> explorer.explore(200)
->>> print(explorer.X)
->>> print(explorer.y)
+>>> new_samples = explorer.explore(200)
 
-# These samples are available as a dataframe to
->>> print(explorer.data)
+# These samples are available as a dataframe with
+>>> df = explorer.data
 
 # Use user provided samples, run the model on it, attach them
->>> explorer.explore(X=X)
+>>> new_samples = explorer.explore(X=X)
 
 # Use user provided samples and output, attach them
 # (Only way to use "explore" without providing a model)
->>> explorer.explore(X=X, y=y)
+>>> new_samples = explorer.explore(X=X, y=y)
+
 ```
 
 A sensitivity analysis is available (via the RBD-fast method), which
@@ -125,8 +127,9 @@ order inputs according to their relative importance.
 >>> def my_model(x1, x2):
 ...     return np.cos(x1) * np.cos(x2)
 >>> explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))], my_model)
->>> explorer.explore(200)
->>> print(explorer.sensitivity_analysis())
+>>> new_samples = explorer.explore(200)
+>>> sensitivity_indices = explorer.sensitivity_analysis()
+
 ```
 
 The method `explorer.select_metamodel` allow to attach a
@@ -136,35 +139,36 @@ via the library optunity, accross some or all inputs.
 ```python
 >>> def my_model(x1, x2, x3):
 ...     return np.cos(x1) * np.cos(x2) + 0.001 * np.sin(x3)
->>> explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))], my_model)
->>> explorer.explore(200)
+>>> explorer = Explorer([("x1", (-5, 5)), ("x2", (-5, 5)), ("x3", (0, 10))], my_model)
+>>> new_samples = explorer.explore(200)
 
 # full auto tune, let optunity chose as well metamodel and hyperparameters and
 # use the default threshold to select the relevant features (via the sensitivity indices) :
 # the N most relevant features will be used, in order to have 90% of the variance explained
 # by these features
->>> explorer.select_metamodel()
+>>> metamodel = explorer.select_metamodel()
 
 # We can lower the threshold
->>> explorer.select_metamodel(threshold=.5)
+>>> metamodel = explorer.select_metamodel(threshold=.5)
 
 # full auto tune, but select the N most relevant features
->>> explorer.select_metamodel(features=2)
+>>> metamodel = explorer.select_metamodel(features=2)
 
 # full auto tune, but select specific features
->>> explorer.select_metamodel(features=["x1", "x3"])
+>>> metamodel = explorer.select_metamodel(features=["x1", "x3"])
 
 # auto tune on selected metamodel
->>> explorer.select_metamodel(algorithm="svm")
+>>> metamodel = explorer.select_metamodel(algorithm="svm")
 
 # auto tune on list of algorithms
->>> explorer.select_metamodel(algorithm=["svm", "k-nn"])
+>>> metamodel = explorer.select_metamodel(algorithm=["svm", "k-nn"])
 
 # auto tune off (you have to provide one algorithm in that case)
->>> explorer.select_metamodel(algorithm="svm", hypopt=False)
+>>> metamodel = explorer.select_metamodel(algorithm="svm", hypopt=False)
 
 # After that, we have access to that metamodel:
->>> explorer.metamodel(x1=1, x2=0.5)
+>>> metamodel = explorer.metamodel(x1=1, x2=0.5)
+
 ```
 
 ### Model
@@ -176,6 +180,7 @@ It is also a callable, so you can use:
 ```python
 >>> model = Model(bounds, function)
 >>> y = model(X)
+
 ```
 
 Main attributes and properties:
@@ -268,7 +273,8 @@ within an Explorer.
 
 >>> register_sampler(MonteCarloSampler)
 >>> explorer = mx.Explorer(bounds, function, sampler="monte-carlo")
->>> explorer.explore(50)
+>>> new_samples = explorer.explore(50)
+
 ```
 
 ### Tuner
@@ -312,6 +318,7 @@ complex) `SVMTuner`:
 ...     Regressor = SVR
 ...     override_validation = dict(degree=Coerce(float),
 ...                               gamma=Any('auto', Coerce(float)))
+
 ```
 
 In that case, *degree* is detected as an integer instead of a float, and
@@ -330,9 +337,10 @@ you can register your own tuner the same way you register a Sampler:
 >>> register_tuner(GaussianProcessTuner)
 
 >>> explorer = Explorer(bounds, function)
->>> explorer.explore(60)
+>>> new_samples = explorer.explore(60)
 >>> metamodel = explorer.select_metamodel("gaussian-process")
->>> metamodel.response(50).plot()
+>>> response = metamodel.response(50)
+
 ```
 
 Gallery
