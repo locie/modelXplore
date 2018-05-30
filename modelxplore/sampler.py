@@ -6,7 +6,7 @@ import sys
 
 import numpy as np
 from fuzzywuzzy import process
-from scipy.interpolate import NearestNDInterpolator, interp1d
+from scipy.interpolate import NearestNDInterpolator, interp1d, griddata
 from scipy.stats import beta
 from sklearn.metrics import euclidean_distances
 from sklearn.preprocessing import MinMaxScaler
@@ -91,7 +91,7 @@ class IncrementalSampler(Sampler):
             n {int} -- number of point that will map the euclidian distance (more: slower but more accurate) (default: {1000})
             a {float} -- first beta dist shape arg (default: {20})
             b {float} -- second beta dist shape arg (default: {.1})
-        """
+        """  # noqa
         super().__init__(bounds)
         self._X = None
         self._generation_dist = beta(a, b)
@@ -147,6 +147,116 @@ class IncrementalSampler(Sampler):
         x = np.linspace(0, 1, 500)
         y = self._generation_dist.pdf(x)
         return x, y
+
+
+class ResponsiveSampler(Sampler):
+    name = "responsive"
+
+    def __init__(self, bounds, n=20,
+                 a_dist=20, b_dist=.1,
+                 a_magn=5, b_magn=1,):
+        """A responsive sampler designed to samples according to the distance
+        between the previous samples and the output gradient.
+
+        Be careful! That sampler can be slow, it needs to map the input space
+        to compute the gradient every time the output is updated. This make
+        that sampler not suited for high dimension problem (more than 3) :
+        you may want to reduce your in
+
+        How the samples are distributed on the distance map is tuned by the
+        a_dist and b_dist arguments.
+        How the samples are distributed on the magnitude map is tuned by the
+        a_magn and b_magn arguments.
+
+        Arguments:
+            bounds -- a bounds as [(varname, (low, high)), ...]
+
+        Keyword Arguments:
+            n {int} -- number of point that will map the euclidian distance (more: slower but more accurate) (default: {20})
+            a_dist {float} -- first beta dist shape arg for distance map (default: {20})
+            b_dist {float} -- second beta dist shape arg for distance map (default: {.1})
+            a_magn {float} -- first beta dist shape arg for magnitude map (default: {20})
+            b_magn {float} -- second beta dist shape arg for magnitude map (default: {.1})
+        """  # noqa
+        super().__init__(bounds)
+        self._X = None
+        self._y = None
+        self._reversed_magn = None
+        self._reversed_distance = None
+        self._distance_dist = beta(a_dist, b_dist)
+        self._magn_dist = beta(a_magn, b_magn)
+        self._lhs_sampler = LhsSampler(bounds)
+        xs = [np.linspace(*bound, n) for var, bound in bounds]
+        xxs = np.meshgrid(*xs, indexing="ij")
+        self._xs = xs
+        self._xxs = xxs
+        self._x_flatten = np.vstack([xx.flatten() for xx in xxs]).T
+        self._shape = [n] * self.ndim
+
+    @property
+    def X(self):
+        return self._X
+
+    @X.setter
+    def X(self, new):
+        self._X = new
+        self.update_X()
+
+    @property
+    def y(self):
+        return self._y
+
+    @y.setter
+    def y(self, new):
+        self._y = new
+        self.update_y()
+
+    def update_X(self):
+        distance = self._compute_distance(self._x_flatten, self.X).flatten()
+        self._distance = distance.flatten()
+
+    def update_y(self):
+        gridded = griddata(self.X, self.y, self._x_flatten,
+                           "nearest").reshape(self._shape)
+        grads = np.gradient(gridded, *self._xs)
+        magn = np.sqrt(sum([grad**2 for grad in grads]))
+        self._magn = magn.flatten()
+
+    def _reverse(self, xdist, xmagn):
+        return np.vstack([reversed_func(xdist, xmagn)
+                          for reversed_func
+                          in self._reversed_total]).T.squeeze()
+
+    @property
+    def _reversed_total(self):
+        magn = MinMaxScaler().fit_transform(
+            self._magn.reshape((-1, 1))).squeeze()
+        distance = MinMaxScaler().fit_transform(
+            self._distance.reshape((-1, 1))).squeeze()
+
+        if magn is None:
+            magn = np.linspace(0, 1, distance.size)
+        metric = np.vstack([distance, magn]).T
+
+        reversed_funcs = [NearestNDInterpolator(metric, x.squeeze())
+                          for x in self._x_flatten.T]
+        return reversed_funcs
+
+    def rvs(self, size=1):
+        if self._X is not None:
+            new_samples = np.zeros((size, self.ndim))
+            for i in range(size):
+                new_sample = self._reverse(self._distance_dist.rvs(),
+                                           self._magn_dist.rvs())
+                self.X = np.vstack([self.X, new_sample])
+                new_samples[i, :] = new_sample
+            return new_samples
+        else:
+            self.X = self._lhs_sampler(size)
+            return self.X
+
+    def _compute_distance(self, inputs, X):
+        return euclidean_distances(inputs, X).min(axis=1)
 
 
 available_samplers = {
