@@ -343,8 +343,7 @@ you can register your own tuner the same way you register a Sampler:
 
 ```
 
-Gallery
--------
+## Gallery
 
 ### Ishigami
 
@@ -367,12 +366,9 @@ random-forest metamodel. Trained with 150 samples.
 left to right : reference function, random-forest metamodel,
 gaussian-process metamodel. Trained with 800 samples.
 
-TODO
-----
+## TODO
 
-- Internal documentation (docstrings)
 - tests
 - CI
-- Responsive sampler
 - Add tuners
 - Add test functions
