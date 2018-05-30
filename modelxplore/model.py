@@ -4,7 +4,7 @@
 
 import inspect
 import itertools as it
-from functools import partial
+from functools import partial, wraps
 
 import numpy as np
 import pandas as pd
@@ -46,11 +46,13 @@ class Model:
 
             The model call accept different inputs: as well a
             -   (size, ndim) array
-                >>> model(X)
+            >>> y = model(X)
+
             -   inputs as positionnal arguments (float, list or array)
-                >>> model(x1, x2)
+            >>> y = model(x1, x2)
+
             -   inputs as named arguments (float, list or array)
-                >>> model(x2=0, x1=0)
+            >>> y = model(x2=0, x1=0)
 
         """  # noqa
         self._vars, self._bounds = zip(*bounds)
@@ -59,9 +61,7 @@ class Model:
                              bounds=self._bounds)
         self._function = np.vectorize(function)
         self._expensive = True
-        sig = inspect.signature(self._function)
-        self.__call__.__signature__ = sig
-        self.__call__.__doc__ = self._function.__doc__
+        self.__call__ = wraps(self.__call__)
 
     def __call__(self, *args, **kwargs):
         if args != [] and kwargs == {}:
@@ -130,7 +130,8 @@ class Model:
                 n = [n * max(S1[var] + S2[var], .05)
                      for var in self.inputs]
             else:
-                raise ValueError("grid should be either 'uniform' or 'sensitivity'")
+                raise ValueError(
+                    "grid should be either 'uniform' or 'sensitivity'")
         coords = [np.linspace(*dict(self.bounds)[var], n)
                   for n, var in zip(n, self.inputs)]
         if mode == "fast":
@@ -173,9 +174,9 @@ class Model:
         """  # noqa
         if self._expensive and not force:
             raise ValueError("sensitivity analysis should not be done on "
-                            "expensive function, but only on metamodel or "
-                            "test functions. Use force=True to override that "
-                            "behavior")
+                             "expensive function, but only on metamodel or "
+                             "test functions. Use force=True to override that "
+                             "behavior")
         X = latin.sample(self._problem, N)
         y = self(X)
         S1 = rbd_fast.analyze(self._problem, y, X)["S1"]
@@ -196,9 +197,9 @@ class Model:
         """  # noqa
         if self._expensive and not force:
             raise ValueError("full sensitivity analysis should not be done on "
-                            "expensive function, but only on metamodel or "
-                            "test functions. Use force=True to override that "
-                            "behavior")
+                             "expensive function, but only on metamodel or "
+                             "test functions. Use force=True to override that "
+                             "behavior")
         X = saltelli.sample(self._problem, N)
         y = self(X)
         S = sobol.analyze(self._problem, y)
@@ -251,16 +252,12 @@ class MetaModel(Model):
         self._metamodel.fit(self.X, self.y)
 
     @property
-    def samples(self):
-        return self.samples
-
-    @property
     def X(self):
-        self.samples[list(self.inputs)] .values.reshape((-1, len(self)))
+        return self.samples[list(self.inputs)] .values.reshape((-1, len(self)))
 
     @property
     def y(self):
-        self.samples["y"].values
+        return self.samples["y"].values
 
     @property
     def r_squared(self):

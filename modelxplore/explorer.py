@@ -127,7 +127,7 @@ class Explorer:
             self.data = self.data.append(new_df)
         return new_df
 
-    def sensitivity_analysis(self, inputs, output):
+    def sensitivity_analysis(self, force=False):
         """Run a RBD-fast sensitivity analysis and return the first order
         indices. Theses indices are not trustworthy if the number of samples
         are not large enough (which depend of the number of dimension and
@@ -141,17 +141,18 @@ class Explorer:
         Returns:
             dict -- first order sensitivity indices
         """
-        S1 = rbd_fast.analyze(self._problem, output, inputs)["S1"]
-        if self.y.size < 60:
+        S1 = rbd_fast.analyze(self._problem, self.y, self.X)["S1"]
+        if self.y.size < 60 and not force:
             raise ValueError("Too few samples for sensitivity analysis."
                              " You will need extra samples for proper"
-                             " sensitivity analysis")
+                             " sensitivity analysis. Use force=True to"
+                             " override that behaviour.")
         return dict(sorted([(var, idx) for var, idx in zip(self._vars, S1)],
                            key=sort_by_values, reverse=True))
 
     @property
     def S1(self):
-        return self.sensitivity_analysis(self.X, self.y)
+        return self.sensitivity_analysis()
 
     @property
     def X(self):
