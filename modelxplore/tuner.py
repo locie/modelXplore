@@ -17,6 +17,17 @@ from voluptuous import ALLOW_EXTRA, Any, Coerce, Schema
 
 
 def get_tuner(algorithm):
+    """get a tuner by its name
+
+    Arguments:
+        algorithm {str} -- the name of the requested algorithm
+
+    Raises:
+        NotImplementedError -- raised if the tuner is not available.
+
+    Returns:
+        Tuner -- the requested tuner
+    """
     try:
         return available_tuners[algorithm]()
     except KeyError:

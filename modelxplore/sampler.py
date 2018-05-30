@@ -14,12 +14,23 @@ from sklearn.preprocessing import MinMaxScaler
 from SALib.sample import latin
 
 
-def get_sampler(algorithm):
+def get_sampler(name):
+    """get a sampler by its name
+
+    Arguments:
+        name {str} -- sampler name
+
+    Raises:
+        NotImplementedError -- raised if the sampler is not available.
+
+    Returns:
+        Sampler -- the requested sampler
+    """
     try:
-        return available_samplers[algorithm]
+        return available_samplers[name]
     except KeyError:
-        err_msg = "%s sampler is not registered." % algorithm
-        (suggest, score), = process.extract(algorithm,
+        err_msg = "%s sampler is not registered." % name
+        (suggest, score), = process.extract(name,
                                             available_samplers.keys(),
                                             limit=1)
         if score > 70:
@@ -59,20 +70,27 @@ class LhsSampler(Sampler):
 
 
 class IncrementalSampler(Sampler):
-    """[summary]
-    """
     name = "incremental"
 
     def __init__(self, bounds, n=1000, a=20, b=.1):
-        """[summary]
+        """An incremental sampler designed to be history aware : after a first
+        lhs sampling, any extra samples will be distributed in order to fill
+        the void.
+
+        How the samples are distributed on the distance map is tuned by the
+        a and b arguments. You can see that distribution with the
+        sampler.distance_dist property (it will return x and y for easy
+        plotting). If the distribution is to much concentrated to the right,
+        you will loose the randomization. Too much on the left, and the void
+        will not be filled in an efficient way.
 
         Arguments:
-            problem {[type]} -- [description]
+            bounds -- a bounds as [(varname, (low, high)), ...]
 
         Keyword Arguments:
-            n {int} -- [description] (default: {1000})
-            a {float} -- [description] (default: {.95})
-            b {float} -- [description] (default: {.01})
+            n {int} -- number of point that will map the euclidian distance (more: slower but more accurate) (default: {1000})
+            a {float} -- first beta dist shape arg (default: {20})
+            b {float} -- second beta dist shape arg (default: {.1})
         """
         super().__init__(bounds)
         self._X = None
