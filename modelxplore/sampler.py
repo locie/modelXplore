@@ -149,7 +149,30 @@ class ResponsiveSampler(Sampler):
 
     def __init__(self, bounds, n=20,
                  a_dist=20, b_dist=.1,
-                 a_magn=5, b_magn=1,):
+                 a_magn=5, b_magn=1):
+        """A responsive sampler designed to samples according to the distance
+        between the previous samples and the output gradient.
+
+        Be careful! That sampler can be slow, it needs to map the input space
+        to compute the gradient every time the output is updated. This make
+        that sampler not suited for high dimension problem (more than 3) :
+        you may want to reduce your in
+
+        How the samples are distributed on the distance map is tuned by the
+        a_dist and b_dist arguments.
+        How the samples are distributed on the magnitude map is tuned by the
+        a_magn and b_magn arguments.
+
+        Arguments:
+            bounds -- a bounds as [(varname, (low, high)), ...]
+
+        Keyword Arguments:
+            n {int} -- number of point that will map the euclidian distance (more: slower but more accurate) (default: {20})
+            a_dist {float} -- first beta dist shape arg for distance map (default: {20})
+            b_dist {float} -- second beta dist shape arg for distance map (default: {.1})
+            a_magn {float} -- first beta dist shape arg for magnitude map (default: {20})
+            b_magn {float} -- second beta dist shape arg for magnitude map (default: {.1})
+        """  # noqa
         super().__init__(bounds)
         self._X = None
         self._y = None
