@@ -2,16 +2,17 @@
 # coding=utf8
 
 
-from functools import partial
+import inspect
 import itertools as it
+from functools import partial
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import xarray as xr
-from scipy.interpolate import griddata
-
+from optunity.metrics import mse, r_squared
 from SALib.analyze import rbd_fast, sobol
 from SALib.sample import latin, saltelli
+from scipy.interpolate import griddata
 
 from .sampler import LhsSampler
 from .tuner import MultipleTuner, get_tuner
@@ -20,27 +21,49 @@ from .utils import sort_by_values
 
 class Model:
     def __init__(self, bounds, function):
-        """[summary]
+        """Base classe for generate the outputs from some inputs and a function.
+        It contains all the method for the surface response generation, sensitivity
+        analysis and more.
+        This class is a callable, so you can use its instances as a function.
 
         Arguments:
-            bounds {[type]} -- [description]
-            function {[type]} -- [description]
-        """
+            bounds {list((str, (float, float))} -- [varname, (high, low)]
+            function {callable} -- the function used to generate the output from the inputs
+
+        Attributes:
+            inputs {list(str)} -- the name of the model inputs
+            bounds {dict} -- the bounds of the model
+            S1 {dict} -- first order sensitivity indices computed by the rbd-fast method
+
+        Methods:
+            response -- compute the response surface of the model.
+            sensitivity analysis -- use the rbd-fast method to perform a sensivity analysis of the model
+            full sensitivity analysis -- use the sobol method to perform a sensivity analysis of the model
+
+        Examples:
+
+            >>> model = Model(bounds, func)
+
+            The model call accept different inputs: as well a
+            -   (size, ndim) array
+                >>> model(X)
+            -   inputs as positionnal arguments (float, list or array)
+                >>> model(x1, x2)
+            -   inputs as named arguments (float, list or array)
+                >>> model(x2=0, x1=0)
+
+        """  # noqa
         self._vars, self._bounds = zip(*bounds)
         self._problem = dict(num_vars=len(self),
                              names=self.inputs,
                              bounds=self._bounds)
         self._function = np.vectorize(function)
+        self._expensive = True
+        sig = inspect.signature(self._function)
+        self.__call__.__signature__ = sig
+        self.__call__.__doc__ = self._function.__doc__
 
     def __call__(self, *args, **kwargs):
-        """[summary]
-
-        Raises:
-            ValueError -- [description]
-
-        Returns:
-            [type] -- [description]
-        """
         if args != [] and kwargs == {}:
             if len(args) == 1:
                 X = args[0]
@@ -60,26 +83,39 @@ class Model:
     def __len__(self):
         return len(self.inputs)
 
-    def response(self, n, mode="accurate", grid="uniform"):
-        """[summary]
+    def response(self, n=50, mode="accurate", grid="uniform", force=False):
+        """Compute the response surface of the model. This is an expensive
+        method that will request a lot of model call.
 
         Arguments:
-            n {[type]} -- [description]
+            n {int or list(int)} -- number of step in each dimension (default: {50})
 
         Keyword Arguments:
-            mode {str} -- [description] (default: {"accurate"})
-            grid {str} -- [description] (default: {"uniform"})
+            mode {str} -- "fast" or "accurate". (default: {"accurate"})
+            "accurate" will compute the model to the full grid. "fast" will
+            compute n / 10 ** ndim samples then interpolate these samples on
+            the grid via a nearest neighbour interpolator.
 
-        Raises:
-            ValueError -- [description]
+            grid {str} -- "uniform" or "sensitivity" (default: {"uniform"})
+            if "uniform", a (n x n x ...) grid is used. if "sensitivity", the
+            steps will depend of the sensitivity index of each inputs. It
+            allows to be more accurate of relevant variables.
+            Ignored if n is a list.
 
         Returns:
-            [type] -- [description]
+            xarray.DataArray -- The gridded surface response as a DataArray
         """
+        if self._expensive and not force:
+            raise ValueError("response surface should not be computed on "
+                             "expensive function, but only on metamodel or "
+                             "test functions. Use force=True to override that "
+                             "behavior")
+
         def get_shape(i):
             shape = [1] * (len(self) - 1)
             shape.insert(i, -1)
             return shape
+
         if isinstance(n, int):
             if grid == "uniform":
                 n = [n] * len(self)
@@ -93,6 +129,8 @@ class Model:
                 n = n * len(self)
                 n = [n * max(S1[var] + S2[var], .05)
                      for var in self.inputs]
+            else:
+                raise ValueError("grid should be either 'uniform' or 'sensitivity'")
         coords = [np.linspace(*dict(self.bounds)[var], n)
                   for n, var in zip(n, self.inputs)]
         if mode == "fast":
@@ -123,15 +161,21 @@ class Model:
 
         return da
 
-    def sensitivity_analysis(self, N=1000):
-        """[summary]
+    def sensitivity_analysis(self, N=1000, force=False):
+        """Run a RBD-fast sensitivity analysis and return the first order
+        indices.
 
         Keyword Arguments:
-            N {int} -- [description] (default: {1000})
+            N {int} -- number of sampled used to run the analysis (default: {1000})
 
         Returns:
-            [type] -- [description]
-        """
+            dict -- first order sensitivity indices
+        """  # noqa
+        if self._expensive and not force:
+            raise ValueError("sensitivity analysis should not be done on "
+                            "expensive function, but only on metamodel or "
+                            "test functions. Use force=True to override that "
+                            "behavior")
         X = latin.sample(self._problem, N)
         y = self(X)
         S1 = rbd_fast.analyze(self._problem, y, X)["S1"]
@@ -140,15 +184,21 @@ class Model:
                             in zip(self.inputs, S1)],
                            key=sort_by_values, reverse=True))
 
-    def full_sensitivity_analysis(self, N=1000):
-        """[summary]
+    def full_sensitivity_analysis(self, N=1000, force=False):
+        """Run a Sobol sensitivity analysis and return the first and second
+        order indices.
 
         Keyword Arguments:
-            N {int} -- [description] (default: {1000})
+            N {int} -- number of sampled used to run the analysis (default: {1000})
 
         Returns:
-            [type] -- [description]
-        """
+            dict -- first order sensitivity indices
+        """  # noqa
+        if self._expensive and not force:
+            raise ValueError("full sensitivity analysis should not be done on "
+                            "expensive function, but only on metamodel or "
+                            "test functions. Use force=True to override that "
+                            "behavior")
         X = saltelli.sample(self._problem, N)
         y = self(X)
         S = sobol.analyze(self._problem, y)
@@ -179,39 +229,50 @@ def meta_factory(model, n_features, *args):
 
 class MetaModel(Model):
 
-    def __init__(self, bounds, model, hyperparameters, metrics=None):
-        """[summary]
+    def __init__(self, bounds, model, hyperparameters):
+        """A metamodel that can be fit on a more complex model or on
+        experimental data.
 
         Arguments:
-            bounds {[type]} -- [description]
-            model {[type]} -- [description]
-            hyperparameters {[type]} -- [description]
-        """
+            bounds {list((str, (int, int))} -- [(namevar, (low, high))]
+            model {sklearn regressor like} -- the metamodel class (obtain via a Tuner or other)
+            It needs to accept some hyperparameters as kwargs and to have a fit and a predict method.
+            hyperparameters {dict} -- the metamodel hyperparameters
+        """  # noqa
+        self.samples = pd.DataFrame()
         self._metamodel = model
-        self._samples = pd.DataFrame()
         _metamodel_func = partial(meta_factory, model, len(bounds))
         self._hyperparameters = hyperparameters
-        if metrics:
-            self._metrics = metrics
         super().__init__(bounds, _metamodel_func)
+        self._expensive = False
 
     def fit(self, samples):
-        self._samples = self._samples.append(samples)
-        self._metamodel.fit(samples[list(self.inputs)]
-                            .values.reshape((-1, len(self))),
-                            samples["y"].values)
+        self.samples = self.samples.append(samples)
+        self._metamodel.fit(self.X, self.y)
+
+    @property
+    def samples(self):
+        return self.samples
+
+    @property
+    def X(self):
+        self.samples[list(self.inputs)] .values.reshape((-1, len(self)))
+
+    @property
+    def y(self):
+        self.samples["y"].values
+
+    @property
+    def r_squared(self):
+        return r_squared(self.y, self(self.X))
+
+    @property
+    def mse(self):
+        return mse(self.y, self(self.X))
 
     @property
     def metrics(self):
-        try:
-            X = self._samples[list(self.inputs)].values.reshape((-1,
-                                                                 len(self)))
-            y = self._samples["y"].values
-            return {key: metric(X, y, self._hyperparameters)
-                    for key, metric
-                    in self._metrics.items()}
-        except AttributeError:
-            raise AttributeError("metrics unavailable on untrained metamodel")
+        return dict(r_squared=self.r_squared, mse=self.mse)
 
     @staticmethod
     def tune_metamodel(X, y, meta_bounds,
@@ -235,6 +296,6 @@ class MetaModel(Model):
                 **optimal_hyperparameters, **hyperparameters)
         tuned_metamodel = tune(**hyperparameters)
         metamodel = MetaModel(meta_bounds, tuned_metamodel,
-                              hyperparameters, tune.metrics)
+                              hyperparameters)
         metamodel.name = tune.name
         return metamodel

@@ -86,22 +86,12 @@ class Tuner:
             return performance(**hyperparameters)
         return eval_performance
 
-    def r_squared(self, X, y, hyperparameters, num_folds=2):
-        return self._eval_factory(num_folds, r_squared)(
-            X, y, **hyperparameters
-            )
-
-    def mse(self, X, y, hyperparameters, num_folds=2):
-        return self._eval_factory(num_folds, mse)(
-            X, y, **hyperparameters
-            )
-
     @property
     def metrics(self):
         return dict(r_squared=self.r_squared, mse=self.mse)
 
-    def auto_tune(self, X, y, num_evals=50,
-                  num_folds=2, opt_metric="r_squared", nprocs=1,):
+    def auto_tune(self, X, y, num_evals=50, num_folds=2,
+                  opt_metric="r_squared", nprocs=1):
 
         if nprocs == -1:
             nprocs = mp.cpu_count()

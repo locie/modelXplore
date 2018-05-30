@@ -33,6 +33,7 @@ def get_test_function(algorithm):
 class TestFunction(Model):
     def __init__(self):
         super().__init__(self.bounds, self.model)
+        self._expensive = False
 
 
 class StyblinskiTang(TestFunction):
