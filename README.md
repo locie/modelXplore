@@ -227,9 +227,9 @@ are available for now:
   explore the results, run other sampled\...).
 - *Incremental Sampler*: the first sampling use the LHS sampler, then
   every extra samples is chosen in order to fill the void.
-- *Responsive Sampler* (under consruction): a sampler that take into
-  account the distance between older samples and the output gradient
-  to favorize the exploration in interesting area (Comming soon).
+- *Responsive Sampler*: a sampler that take into account the distance
+  between older samples and the output gradient to favorize the exploration
+  in interesting area.
 
 The following figure illustrate the difference, with the *incremental
 sampler* at the left, and the *lhs sampler* at the right. The first line
@@ -240,8 +240,18 @@ distance between the point.
 ![image](doc/incremental.png)
 
 We can see that the incremental sampling is able to fill the void
-between the olders sample when the lhs sampling is \"amnesic\" : the new
+between the olders sample when the lhs sampling is "amnesic" : the new
 samples do not take the old ones into account.
+
+The responsive sampler add to the advantages of an incremental sampler with a computation of the output gradient.
+
+It will use a metamodel to map the output for gradient computation.
+
+![image](doc/responsive_magn.png)
+
+Thank to that magnitude map and the distance map already used into the incremental sampler, the new samples are generated close to the high gradient area.
+
+![image](doc/responsive.png)
 
 Available samplers are listed with
 
