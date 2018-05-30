@@ -2,7 +2,6 @@
 # coding=utf8
 
 
-import inspect
 import itertools as it
 from functools import partial, wraps
 
@@ -104,7 +103,7 @@ class Model:
 
         Returns:
             xarray.DataArray -- The gridded surface response as a DataArray
-        """
+        """  # noqa
         if self._expensive and not force:
             raise ValueError("response surface should not be computed on "
                              "expensive function, but only on metamodel or "
