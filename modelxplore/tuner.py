@@ -3,16 +3,16 @@
 
 import inspect
 import multiprocessing as mp
-from functools import partial
 import sys
-
-from fuzzywuzzy import process
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.svm import SVR
+from functools import partial
 
 import optunity
-from optunity.metrics import r_squared, mse
+from fuzzywuzzy import process
+from optunity.metrics import mse, r_squared
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.svm import SVR
 from voluptuous import ALLOW_EXTRA, Any, Coerce, Schema
 
 
@@ -195,6 +195,12 @@ class SVMTuner(Tuner):
     Regressor = SVR
     override_validation = dict(degree=Coerce(float),
                                gamma=Any('auto', Coerce(float)))
+
+
+class GaussianProcessTuner(Tuner):
+    name = "gaussian-process"
+    search = {"alpha": [1E-10, 1E-1]}
+    Regressor = GaussianProcessRegressor
 
 
 available_tuners = {
