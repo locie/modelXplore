@@ -22,6 +22,7 @@ pytest = "^3.5"
 isort = "^4.3"
 pylama = "^7.4"
 yapf = "^0.22.0"
+pytest-cov = "^2.5"
 
 [tool.poetry.extras]
 interactive = ["holoviews", "jupyter"]
