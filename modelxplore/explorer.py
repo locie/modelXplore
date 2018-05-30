@@ -16,7 +16,7 @@ from .utils import sort_by_values
 
 
 class Explorer:
-    def __init__(self, bounds, model=None, sampler="lhs"):
+    def __init__(self, bounds, model=None, sampler="lhs", **sampler_kwargs):
         """Object used to help the user to explore a numerical or experimental
         phenomena.
 
@@ -59,9 +59,9 @@ class Explorer:
         self._df = pd.DataFrame(columns=["batch", *self._vars, "y", "time"])
 
         if isinstance(sampler, Sampler):
-            self.sample = sampler(bounds)
+            self.sampler = sampler(bounds)
         elif isinstance(sampler, str):
-            self.sample = get_sampler(sampler)(bounds)
+            self.sampler = get_sampler(sampler)(bounds, **sampler_kwargs)
         else:
             raise ValueError("sampler should be a Sampler instance, "
                              "or one of the following: "
@@ -75,6 +75,9 @@ class Explorer:
 
     def __len__(self):
         return len(self._vars)
+
+    def sample(self, n):
+        return self.sampler.rvs(n)
 
     def clean(self):
         self._df = pd.DataFrame(columns=["batch", *self._vars, "y", "time"])
@@ -125,6 +128,8 @@ class Explorer:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.data = self.data.append(new_df)
+        self.sampler.X = self.X
+        self.sampler.y = self.y
         return new_df
 
     def sensitivity_analysis(self, force=False):
