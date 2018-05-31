@@ -58,6 +58,9 @@ class Sampler:
                              names=self._vars,
                              bounds=self._bounds)
 
+    def __len__(self):
+        return self.ndim
+
     def __call__(self, size):
         return self.rvs(size)
 
