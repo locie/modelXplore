@@ -36,26 +36,26 @@ But what if we have a function that is really expansive, and you want to
 obtain that kind of surface response?
 
 ```python
-from modelxplore import Explorer, get_test_function
-ishigami = get_test_function("ishigami")()
+>>> from modelxplore import Explorer, get_test_function
+>>> ishigami = get_test_function("ishigami")()
 
 # We create the explorer with the bounds of the problem and the function.
-expl = Explorer(bounds=ishigami.bounds, function=ishigami)
+>>> expl = Explorer(ishigami.bounds, ishigami)
 
 # We generate 150 samples, and generate the outputs.
-expl.explore(150)
+>>> new_samples = expl.explore(150)
 
 # We let the autotuner chose a well-suited metamodel on the 2 most sensitive
 # inputs
 
-expl.select_metamodel(features=2)
+>>> metamodel = expl.select_metamodel(features=2)
 
 # We compute, then plot the surface response of the obtained metamodel
-response = expl.metamodel.response(50)
-response.plot()
+>>> response = metamodel.response(50)
+>>> response.plot()  # doctest: +SKIP
 
 # We run a sobol sensitivity analysis on the metamodel (first and second order)
-print(expl.metamodel.full_sensitivity_analysis())
+>>> print(expl.metamodel.full_sensitivity_analysis())  # doctest: +SKIP
 
 ```
 
@@ -137,10 +137,6 @@ metamodel to the explorer. This one can be automaticaly selected (tuned)
 via the library optunity, accross some or all inputs.
 
 ```python
->>> def my_model(x1, x2, x3):
-...     return np.cos(x1) * np.cos(x2) + 0.001 * np.sin(x3)
->>> explorer = Explorer([("x1", (-5, 5)), ("x2", (-5, 5)), ("x3", (0, 10))], my_model)
->>> new_samples = explorer.explore(200)
 
 # full auto tune, let optunity chose as well metamodel and hyperparameters and
 # use the default threshold to select the relevant features (via the sensitivity indices) :
@@ -149,13 +145,13 @@ via the library optunity, accross some or all inputs.
 >>> metamodel = explorer.select_metamodel()
 
 # We can lower the threshold
->>> metamodel = explorer.select_metamodel(threshold=.5)
+>>> metamodel = explorer.select_metamodel("k-nn", threshold=.8)  # doctest: +SKIP
 
 # full auto tune, but select the N most relevant features
->>> metamodel = explorer.select_metamodel(features=2)
+>>> metamodel = explorer.select_metamodel("k-nn", features=2)  # doctest: +SKIP
 
 # full auto tune, but select specific features
->>> metamodel = explorer.select_metamodel(features=["x1", "x3"])
+>>> metamodel = explorer.select_metamodel("k-nn", features=["x1", "x3"])  # doctest: +SKIP
 
 # auto tune on selected metamodel
 >>> metamodel = explorer.select_metamodel(algorithm="svm")
@@ -195,10 +191,7 @@ Main attributes and properties:
 Main methods:
 
 - `model.response` compute the response surface. You can
-   use the *fast* or the *accurate* method : the first evaluate the
-   model on sampled inputs, then use a Nearest Neighbour interpolation
-   to project the output to the response grid. The latter compute the
-   response surface directly on the grid. This grid can be *uniform* or
+   Compute the response surface on a grid. This grid can be *uniform* or
    use the sensitivity indices to spread the number of slice between
    the different dimensions.
 - `model.sensitivity_analysis` compute the first order
@@ -231,6 +224,8 @@ are available for now:
   between older samples and the output gradient to favorize the exploration
   in interesting area.
 
+#### Incremental sampler
+
 The following figure illustrate the difference, with the *incremental
 sampler* at the left, and the *lhs sampler* at the right. The first line
 is the initial LHS sampling (50 samples) as black dots, and additionnal
@@ -242,6 +237,8 @@ distance between the point.
 We can see that the incremental sampling is able to fill the void
 between the olders sample when the lhs sampling is "amnesic" : the new
 samples do not take the old ones into account.
+
+#### Responsive sampler
 
 The responsive sampler add to the advantages of an incremental sampler with a computation of the output gradient.
 
