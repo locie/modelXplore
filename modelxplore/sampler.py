@@ -144,12 +144,6 @@ class IncrementalSampler(Sampler):
     def _distance(self, inputs, X):
         return euclidean_distances(inputs, X).min(axis=1)
 
-    @property
-    def distance_dist(self):
-        x = np.linspace(0, 1, 500)
-        y = self._generation_dist.pdf(x)
-        return x, y
-
 
 class ResponsiveSampler(Sampler):
     name = "responsive"
