@@ -61,6 +61,10 @@ class Sampler:
     def __len__(self):
         return self.ndim
 
+    @property
+    def inputs(self):
+        return self._vars
+
     def __call__(self, size):
         return self.rvs(size)
 
