@@ -234,13 +234,13 @@ class Explorer:
 
         Examples:
             Let optunity choose between the all the available tuners (can be very long)
-            >>> metamodel = explorer.select_metamodel()
+            >>> metamodel = explorer.select_metamodel()  # doctest: +SKIP
 
             Let optunity choose between a list of available tuners
             >>> metamodel = explorer.select_metamodel(["k-nn", "random-forest"])
 
             Use mean-squared error to choose the metamodel
-            >>> metamodel = explorer.select_metamodel(opt_metric="mse")
+            >>> metamodel = explorer.select_metamodel(opt_metric="mse")  # doctest: +SKIP
 
             Fix the tuner, let optunity choose the optimal hyperparameters
             >>> metamodel = explorer.select_metamodel("random-forest")
