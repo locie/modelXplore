@@ -31,17 +31,15 @@ def get_test_function(algorithm):
 
 
 class TestFunction(Model):
-    def __init__(self):
+    def __init__(self, bounds=None):
         super().__init__(self.bounds, self.model)
         self._expensive = False
 
 
 class StyblinskiTang(TestFunction):
     name = "styblinski_tang"
-
-    def __init__(self, N):
-        self.bounds = [("x%i" % i, (-5, 5)) for i in range(1, N + 1)]
-        super().__init__()
+    bounds = [("x1", (-1.5, 4)),
+              ("x2", (-3, 4))]
 
     def model(self, *x):
         return sum([x_i**4 - 16 * x_i**2 + 5 * x_i / 2 for x_i in x])

@@ -49,6 +49,8 @@ class Explorer:
 
 
         """  # noqa
+        self._model = None
+        self._metamodel = None
         self._vars, self._bounds = zip(*bounds)
         self._problem = dict(num_vars=len(self._vars),
                              names=self._vars,
@@ -58,16 +60,17 @@ class Explorer:
 
         self._df = pd.DataFrame(columns=["batch", *self._vars, "y", "time"])
 
-        if isinstance(sampler, Sampler):
-            self.sampler = sampler(bounds)
-        elif isinstance(sampler, str):
-            self.sampler = get_sampler(sampler)(bounds, **sampler_kwargs)
-        else:
+        try:
+            if isinstance(sampler, str):
+                self.sampler = get_sampler(sampler)(bounds, **sampler_kwargs)
+            else:
+                self.sampler = sampler(bounds)
+        except TypeError:
             raise ValueError("sampler should be a Sampler instance, "
                              "or one of the following: "
-                             "%s" % [sampler[0]
+                             "%s" % [sampler
                                      for sampler
-                                     in available_samplers])
+                                     in available_samplers.keys()])
 
     @property
     def bounds(self):
@@ -81,6 +84,7 @@ class Explorer:
 
     def clean(self):
         self._df = pd.DataFrame(columns=["batch", *self._vars, "y", "time"])
+        self.sampler.clean()
 
     def explore(self, n_samples=None, *, X=None, y=None,
                 batch_name=None, nprocs=1):
@@ -146,12 +150,12 @@ class Explorer:
         Returns:
             dict -- first order sensitivity indices
         """
-        S1 = rbd_fast.analyze(self._problem, self.y, self.X)["S1"]
         if self.y.size < 60 and not force:
             raise ValueError("Too few samples for sensitivity analysis."
                              " You will need extra samples for proper"
                              " sensitivity analysis. Use force=True to"
                              " override that behaviour.")
+        S1 = rbd_fast.analyze(self._problem, self.y, self.X)["S1"]
         return dict(sorted([(var, idx) for var, idx in zip(self._vars, S1)],
                            key=sort_by_values, reverse=True))
 
@@ -203,7 +207,7 @@ class Explorer:
     def data(self, new_df):
         try:
             self.metamodel.fit(new_df)
-        except AttributeError:
+        except NotImplementedError:
             pass
         self._df = new_df
 

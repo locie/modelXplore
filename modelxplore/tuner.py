@@ -86,10 +86,6 @@ class Tuner:
             return performance(**hyperparameters)
         return eval_performance
 
-    @property
-    def metrics(self):
-        return dict(r_squared=self.r_squared, mse=self.mse)
-
     def auto_tune(self, X, y, num_evals=50, num_folds=2,
                   opt_metric="r_squared", nprocs=1):
 

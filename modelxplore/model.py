@@ -82,7 +82,7 @@ class Model:
     def __len__(self):
         return len(self.inputs)
 
-    def response(self, n=50, mode="accurate", grid="uniform", force=False):
+    def response(self, n=50, grid="uniform", force=False):
         """Compute the response surface of the model. This is an expensive
         method that will request a lot of model call.
 
@@ -90,10 +90,6 @@ class Model:
             n {int or list(int)} -- number of step in each dimension (default: {50})
 
         Keyword Arguments:
-            mode {str} -- "fast" or "accurate". (default: {"accurate"})
-            "accurate" will compute the model to the full grid. "fast" will
-            compute n / 10 ** ndim samples then interpolate these samples on
-            the grid via a nearest neighbour interpolator.
 
             grid {str} -- "uniform" or "sensitivity" (default: {"uniform"})
             if "uniform", a (n x n x ...) grid is used. if "sensitivity", the
@@ -133,29 +129,10 @@ class Model:
                     "grid should be either 'uniform' or 'sensitivity'")
         coords = [np.linspace(*dict(self.bounds)[var], n)
                   for n, var in zip(n, self.inputs)]
-        if mode == "fast":
-            lhs_sampler = LhsSampler(self.bounds)
-            random_coords = lhs_sampler(int(np.mean(n) / 10) ** len(self))
-            corners = np.array(list(it.product(*self._problem["bounds"])))
-            centers = np.vstack(set([tuple(np.vstack(corner)
-                                           .mean(axis=0)
-                                           .tolist())
-                                     for corner
-                                     in it.combinations(corners, 2)]))
-            random_coords = np.vstack([random_coords, *corners, *centers])
-            _y = self(random_coords)
-            _coords = [coord.flatten()
-                       for coord
-                       in np.meshgrid(*coords, indexing="ij")]
-            y = griddata(
-                random_coords, _y, tuple(_coords),
-            ).reshape([n] * len(self))
-        elif mode == "accurate":
-            y = self(**{key: value.reshape(get_shape(i))
-                        for i, (key, value)
-                        in enumerate(zip(self.inputs, coords))})
-        else:
-            raise ValueError("mode should be either 'fast' or 'accurate'")
+
+        y = self(**{key: value.reshape(get_shape(i))
+                    for i, (key, value)
+                    in enumerate(zip(self.inputs, coords))})
 
         da = xr.DataArray(y, name="y", coords=coords, dims=self.inputs)
 

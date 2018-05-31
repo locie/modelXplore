@@ -61,6 +61,9 @@ class Sampler:
     def __len__(self):
         return self.ndim
 
+    def clean(self):
+        pass
+
     @property
     def inputs(self):
         return self._vars
@@ -113,6 +116,9 @@ class IncrementalSampler(Sampler):
     def X(self, new):
         self.update_sampler(new)
         self._X = new
+
+    def clean(self):
+        self._X = None
 
     def update_sampler(self, X):
 
@@ -208,6 +214,10 @@ class ResponsiveSampler(Sampler):
     def y(self, new):
         self._y = new
         self.update_y()
+
+    def clean(self):
+        self._X = None
+        self._y = None
 
     def update_X(self):
         distance = self._compute_distance(self._x_flatten, self.X).flatten()
