@@ -233,13 +233,15 @@ class ResponsiveSampler(Sampler):
 
     @property
     def _reversed_total(self):
-        magn = MinMaxScaler().fit_transform(
-            self._magn.reshape((-1, 1))).squeeze()
         distance = MinMaxScaler().fit_transform(
             self._distance.reshape((-1, 1))).squeeze()
 
-        if magn is None:
+        try:
+            magn = MinMaxScaler().fit_transform(
+                self._magn.reshape((-1, 1))).squeeze()
+        except AttributeError:
             magn = np.linspace(0, 1, distance.size)
+
         self._metric = metric = np.vstack([distance, magn]).T
 
         reversed_funcs = [NearestNDInterpolator(metric, x.squeeze() +
