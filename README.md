@@ -290,10 +290,12 @@ defined the bounds of the hyperparameters optimization.
 The simplest one available is the k-nn tuner
 
 ```python
+from sklearn.neighbors import KNeighborsRegressor
 >>> class KnnTuner(Tuner):
 ...     name = "k-nn"
 ...     search = {'n_neighbors': [1, 5]}
 ...     Regressor = KNeighborsRegressor
+
 ```
 
 The only hyperparameter to optimize is the `n_neighbors`,
@@ -310,6 +312,7 @@ validator when you create your tuner. For example, for the (more
 complex) `SVMTuner`:
 
 ```python
+>>> from sklearn.svm import SVR
 >>> class SVMTuner(Tuner):
 ...     name = "svm"
 ...     search = {'kernel': {'linear': {'C': [0, 2]},
