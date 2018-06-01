@@ -15,7 +15,7 @@ def add_base_modelxplore(doctest_namespace):
     mc = mx.get_test_function("mc_cormick")()
     doctest_namespace['mc_cormick_model'] = mc
     doctest_namespace['mc_cormick_bounds'] = mc.bounds
-    doctest_namespace['func'] = mc
+    doctest_namespace['function'] = doctest_namespace['func'] = mc
     doctest_namespace['bounds'] = mc.bounds
     explorer = mx.Explorer(mc.bounds, mc)
     explorer.explore(120)
