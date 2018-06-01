@@ -1,5 +1,8 @@
 # ModelXplore, a python based model exploration
 
+[![Build Status](https://travis-ci.org/locie/modelXplore.svg?branch=master)](https://travis-ci.org/locie/modelXplore)
+
+
 ModelXplore is an helper library that give some tool to facilitate the
 exploration of time-expansive models (or experimentation).
 
@@ -376,7 +379,6 @@ gaussian-process metamodel. Trained with 800 samples.
 
 ## TODO
 
-- tests
-- CI
 - Add tuners
 - Add test functions
+- Extend to multiple outputs
