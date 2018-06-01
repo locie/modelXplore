@@ -12,6 +12,8 @@ def add_np(doctest_namespace):
 def add_base_modelxplore(doctest_namespace):
     doctest_namespace['Explorer'] = mx.Explorer
     doctest_namespace['Model'] = mx.Model
+    doctest_namespace['Tuner'] = mx.Tuner
+    doctest_namespace['register_tuner'] = mx.register_tuner
     mc = mx.get_test_function("mc_cormick")()
     doctest_namespace['mc_cormick_model'] = mc
     doctest_namespace['mc_cormick_bounds'] = mc.bounds
