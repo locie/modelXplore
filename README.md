@@ -124,10 +124,6 @@ give access to the first order sensitivity indices. They are used to
 order inputs according to their relative importance.
 
 ```python
->>> def my_model(x1, x2):
-...     return np.cos(x1) * np.cos(x2)
->>> explorer = Explorer([("x1", (0, 1)), ("x2", (-5, 5))], my_model)
->>> new_samples = explorer.explore(200)
 >>> sensitivity_indices = explorer.sensitivity_analysis()
 
 ```
@@ -154,13 +150,13 @@ via the library optunity, accross some or all inputs.
 >>> metamodel = explorer.select_metamodel("k-nn", features=["x1", "x3"])  # doctest: +SKIP
 
 # auto tune on selected metamodel
->>> metamodel = explorer.select_metamodel(algorithm="svm")
+>>> metamodel = explorer.select_metamodel("svm")
 
 # auto tune on list of algorithms
->>> metamodel = explorer.select_metamodel(algorithm=["svm", "k-nn"])
+>>> metamodel = explorer.select_metamodel(["svm", "k-nn"])
 
 # auto tune off (you have to provide one algorithm in that case)
->>> metamodel = explorer.select_metamodel(algorithm="svm", hypopt=False)
+>>> metamodel = explorer.select_metamodel("svm", hypopt=False)
 
 # After that, we have access to that metamodel:
 >>> metamodel = explorer.metamodel(x1=1, x2=0.5)
@@ -281,7 +277,7 @@ within an Explorer.
 ...         return samples
 
 >>> register_sampler(MonteCarloSampler)
->>> explorer = mx.Explorer(bounds, function, sampler="monte-carlo")
+>>> explorer = Explorer(bounds, function, sampler="monte-carlo")
 >>> new_samples = explorer.explore(50)
 
 ```
