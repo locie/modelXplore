@@ -2,7 +2,6 @@
 # coding=utf8
 
 
-import itertools as it
 from functools import partial, wraps
 
 import numpy as np
@@ -11,9 +10,7 @@ import xarray as xr
 from optunity.metrics import mse, r_squared
 from SALib.analyze import rbd_fast, sobol
 from SALib.sample import latin, saltelli
-from scipy.interpolate import griddata
 
-from .sampler import LhsSampler
 from .tuner import MultipleTuner, get_tuner
 from .utils import sort_by_values
 

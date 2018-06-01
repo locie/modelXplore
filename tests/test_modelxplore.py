@@ -218,13 +218,13 @@ def test_register_sampler(model):
                 ("\n\t- ".join(available_samplers.keys())))
 
     with pytest.raises(NotImplementedError, message=err_msg):
-        explorer = Explorer(model.bounds, model, sampler="monte-calo")
+        Explorer(model.bounds, model, sampler="monte-calo")
 
     with pytest.raises(NotImplementedError):
-        sampler = get_sampler("fake-sampler")
+        get_sampler("fake-sampler")
 
     with pytest.raises(NotImplementedError):
-        sampler = get_sampler("fake-sampler")
+        get_sampler("fake-sampler")
 
     class BadSampler:
         pass

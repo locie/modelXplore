@@ -10,7 +10,7 @@ import pendulum
 from SALib.analyze import rbd_fast
 
 from .model import MetaModel, Model
-from .sampler import Sampler, available_samplers, get_sampler
+from .sampler import available_samplers, get_sampler
 from .tuner import available_tuners
 from .utils import sort_by_values
 
